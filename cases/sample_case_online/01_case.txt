@@ -1,0 +1,190 @@
+---- SETUP ----
+
+We knock at 221B Baker Street, and to our greatest surprise, Holmes himself answers the door.
+
+"Ah, you arrive at the best possible moment, you are expected in the kitchen. I'll be fair play, Wiggins, I'll let you get a head start to solve the case which, on the whole, is rather banal..."
+
+We hear Watson's wrathful voice coming from the kitchen.
+
+"None of this is a game, you can't leave like this!"
+
+"Watch me!" replies a jolly Holmes, going down the few stairs separating him from the street, leaving us alone on the door step.
+
+After a brief hesitation, we go to the kitchen where Watson is trying to comfort his landlady, Mrs. Hudson.
+
+"Oh! Poor, poor Charly! Feeling so lonely and abandoned. What monster could have done that?" moans Mrs Hudson.
+
+"Can you tell your story again, for our friends here? Start from the beginning", says Watson, bidding us to take a seat. Mrs Hudson nods.
+
+"A friend of mine, Yvonne Nance, came by today to ask for help. She lives in a flat not far from here in a building located on North Audley Street, ground floor, and is very attached to our neighborhood. She took yesterday one of her regular walks in Hyde Park with Charly, skirting Park Lane then Bayswater, to reach the Tyburn Tree she loves so much. Charly then disappeared in the bushes. He's only eight, he couldn't have gone far. On returning home, she had this message.
+
+----
+Yvonne..
+
+"Don't worry for Charly! He will soon be back!"
+
+----
+
+"She alerted her nephew - he is a reporter at the Times and bound to know everything that's going on. She even alerted Scotland Yard who told her not to bother them for so little.
+
+"The police didn't care?" asks Wiggins, raising his eyebrows.
+
+"Ah! At last someone understands. Of course, with a collar bearing his name and address, it shouldn't take long before he reappears, but this message is odd, isn't it?"
+
+"Yes, Delightfully matching his German Spitz hair. He is rather communicative and never leaves Yvonne especially since her poor husband died: he is a good watchdog, and besides her nephew, he is the only family she has."
+
+"Here is a small map of the surrounding area where charly was abducted."
+
+Mrs Hudson holds up a map for us to see:
+
+<<sample_case_online_map.png>>
+
+and Holmes gives us list of relevant locations:
+
+    37WC - Hennessy, Patrick
+    32NW - Grosvenor Investments
+    32NW - Nance, Yvonne
+    76WC - Oppenheimer, Stuart
+    68EC - Parker, Howard 
+    16SW - Parliament
+    16NW - Teevan, Oscar
+    69EC - Cannon Butchers
+    53NW - Baker Meat
+    70NW - Grosvenor Butchers
+    50NW - George Flowers
+    96NW - Hyde Park
+    34NW - Stern, Gloria, Yvonne Nance's neighbor and friend
+
+
+"We'll take it from here" says Wiggins, leaving the room. Once out in the street, we see Holmes on the other side holding a bunch of violets going toward the butcher's, light hearted.
+
+---- CLUES ----
+
+LOC: 16NW - Oscar Teevan
+
+No one has returned Oscar Teevan's dog as of yet.
+
+LOC: 32NW - - Yvonne Nance
+
+Mrs. Nance invites us in her sitting room. We notice a wicker basket, and a blanket in a corner of the room, close to the front door. "Did you find Charly?". She slumps in an armchair, fixing then a picture of her dog, carrying a ball in his mouth. "This is my only souvenir of him now", she states sadly. I haven't been able to lay my hands on his favourite ball for a week, and now he's the one who disappeared...". Also I don't feel very safe - he let me know when anybody was nearby, he would bark incessantly when people approached.
+
+"And did your nephew find anything?"
+
+"Howie? No but I think his mind is on other things. He comes to see me every Thursday, but last Thursday he got here very late and was restless. He didn't want to tell me what was bothering him. Do you think he's in some kind of trouble?" she asks us concerned.
+
+LOC: 32NW - Grosvenor Investments
+
+The manager of Grosvenor Investments receives us but does not tell us anything that we have not read in the Times article. He is sorry for Mrs. Nance's dog, but he has other things to take care of.
+
+After a few contortions, we find a way to discreetly enter in the premises located under the attic, but we are soon stopped by a man. "Hey guys, what do you think you're doing?". "We're investigating...". "You see, after what happened last night, I'm not in a talkative mood.. John tell the night watchman that we found the passage the other snoopers took to get in. And you, out!"
+
+LOC: 32NW - Yvonne Nance
+
+Mrs. Nance invites us in her sitting room. We notice a wicker basket, and a blanket in a corner of the room, close to the front door. "Did you find Charly?". She slumps in an armchair, fixing then a picture of her dog, carrying a ball in his mouth. "This is my only souvenir of him now", she states sadly. I haven't been able to lay my hands on his favourite ball for a week, and now he's the one who disappeared...". Also I don't feel very safe - he let me know when anybody was nearby, he would bark incessantly when people approached.
+
+"And did your nephew find anything?"
+
+"Howie? No but I think his mind is on other things. He comes to see me every Thursday, but last Thursday he got here very late and was restless. He didn't want to tell me what was bothering him. Do you think he's in some kind of trouble?" she asks us concerned.
+
+LOC: 34NW - Gloria Stern, Yvonne's neighbor and friend
+
+Gloria Stern, an upright middle aged woman with a brisk demeanor, invites us in for tea and cakes. We sit down and ask her if she knows anything about the dog or Yvonne's situation.
+
+"About the dog going missing? No. But I do know that dog doesn't let anybody anywhere near Yvonne's residence without raising the biggest fuss. I can almost work out the full schedule of Yvonne and the goings about around her house solely based on his yapping. The only thing that quiets that damn dog is food or his favorite ball".
+
+"What about Yvonne Nance herself?"
+
+"Oh Yvonne is nice enough but I wouldn't trust her with any secret! I'm serious, she leaks like a sieve. Any time she hears the smallest tidbit of information, she makes sure to let me know - and even when she means to keep news secret, she can't help herself! Boy has this news of her dog disappearance traveled fast - I bet that people in the next town have already heard it by now!"
+
+"Ok, anything else?"
+
+"nothing.. but please find that damn dog. Yvonne is so worried, and if you find him, I can get some rest after she stops telling me about it."
+
+LOC: 50NW - George Flowers
+
+The young florist is not insensitive to Wiggins' charm and helps us gladly. "If you're talking about the enigmatic gentleman, he told me he had to buy violets to be forgiven for his mischieviousness".
+
+LOC: 53NW - Baker Meat
+
+The meat dealer looks at us: 'You don't look like you wanna buy anything so shoo!'
+
+LOC: 56NW - Next to hyde park
+
+One of the contortionists remembers seeing on Tuesday a rushing young man, followed by a German Spitz. The dog seemed to be in a playful mood, hopping around the man holding something is his hand.
+
+LOC: 57NW - next to hyde park
+
+The waiter does not seem to understand our questions. Yes, yes, dog very good! A little too much noisy! Very nice lady.
+
+LOC: 70NW - Grosvenor
+
+A red face man welcomes us into his butcher shop. He prepares before us a terrine, meticulously grinding a game's meat, whose origin we can hardly identify. "Ah! You are here for the old bag's pooch? Saw nothing, heard nothing but I won't complain. I thought I was coming to a quiet neighborhood, and not a night went without the dog barking at every passer by. It was hell! I tolerated it beecause the lady came to take her regular lot of kidneys for her 'precious'. Not easy to sell them, and only on a per order basis. He was probably better pampered than Queen Victoria's dog himself. The world is crazy trust me.
+
+LOC: 96NW hyde's park
+
+As we search the bushes, we see in the mud the traces of the dog's paws joined seemingly by those of a man, and leaving in the same direction, due east. We find an abandoned string a little farther on.
+
+LOC: 8SW - mycroft holmes
+
+Mycroft receives us in the visitors sitting room of the Diogenes Club. Oppenheimer was already politically compromised, but this recent affair may very well put an end to his career. If proofs are the slightest bit credible. And we are talking about the times, not a vulgar rag.
+
+
+LOC: 13SW - lestrade, scotland yard
+
+Lestrade threatens to kick us out by force when we tell him the reason for our visit.
+
+LOC: 16SW - parliament 
+
+There is no one in the Parliament who wants to comment on the Oppenheimer affair.
+
+LOC: 17WC - Somerset House
+
+We review th Somerset House logbooks: Yvonne Nance, nee Parker. Married  to Robert Nance on August 17, 1857 (Robert Nance, deceased on December 13, 1885); no child, only one brother him too deceased, no will on record.
+
+LOC: 37WC - Patrick Hennessy
+
+Patric Hennesy does not know Mrs. Nance and does not understand one word of our questions, nor why we came to see him.
+
+LOC: 76WC - Stuart Oppenheimer
+
+"No comment on the case" is the sole response we obtain at the parliamentarian's home.
+
+
+LOC: 52EC - Porky Shinwell
+
+The owner of the Raven and Rat, Porky Shinwell, seems amused by our questions. "So now you're reduced to looking for a pooch? I hope he didn't bite a bad guy because in such a case, a good bag and off to the bottom of the Thames!"
+
+
+LOC: 68EC - Howard Parker
+
+We follow Cannon street up to number 68 and knock on the door of Howard Parker's flat, on the third floor. A young man, looking sleepy, receives us in the corridor, shutting the door behind him. A tad surprised by our investigation, he quickly shortens the conversation. "For the time being, I haven't heard anything about Charly, but I'm not particularly worried. Every dog hashis day! My aunt worries way to much and I've better things to do. And so do you, don't you?"
+
+LOC: 69EC - Cannon
+
+When we ask him, if by chance he received unusual orders recently, the butcher of cannon street answers that a new client specifically requested offal last week and was to pick them up on Tuesday.
+
+---- SOLUTION ----
+
+We all gather in Mrs Hudson's living room. On the coffee table, there is a vase with a bunch of violets. In a corneer of the room, a dog is eating from a bowl, paying no attention to us. Holmes starts without preamble.
+
+An easy case to solve. A letter, with no ransom demand, typed most probably on a Remington, so valued in the publishing industry. A very considerate culprit, or anxious not to draqw attention. A discreet abduction during the usual walk of our client: this most probably points to a close acquaintance. 
+
+The nephew, reporter at the times? Given the article on the neighboring Grosvenor Investments company, with very specific details about bribes, the scenario becomes crystal clear: last Thursday, on March 8, the nephew sees and recognises the parliamentarian Oppenheimer when going to visit his aunt, understands he has a scoop, and devises a strategem so as to enter discreetly in the premises, but the barking of the dog near the door may jeopardize hs action. 
+
+He cannot simply tell Mrs Nance that he plans on kidnapping the dog because Yvonne is well-known not to be able to keep a secret and is afraid of losing his story. He therefore takes the ball in secret, uses it and/or food to lure the dog, and then leads his dog off of the premises. The rest is transparent.
+
+We can now go and explain to Mrs Nance..
+
+---- QUESTIONS ----
+
+1. Who abducted charly? (25 points)
+2. Why was charly abducted? (25 points)
+3. Where is charly? (25 points)
+4. How was the charly lured away? (25 points)
+
+---- ANSWERS ----
+
+1. The nephew, Howard Parker (25 points)
+2. To stop the barking of the dog so he get a scoop on Grosvenor Investments - which was sharing a location with his aunt's house - for a story so he could investigate. (25 points)
+3. At Howard Parker's. (25 points)
+4. He was lured away either by food or his using his favorite bowl. (25 points)

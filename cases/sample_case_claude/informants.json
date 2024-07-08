@@ -1,0 +1,33 @@
+[
+  { "informant":   "Times Foreign Correspondents Bureau",
+    "description": "A place to gather information about any international connections or travel history of the victim or suspects.\nThe victim was a wealthy businessman who might have had international dealings."
+  },
+  {
+    "informant":  "City Records Office",
+    "description": "Access to historical records, property information, and public documents.\nUseful for background checks on the victim, the butler, and any other potential suspects."
+  },
+  {
+    "informant" : "Forensic Lab",
+    "description": "Advanced facility for analyzing physical evidence in detail.\nCan provide deeper analysis of the murder weapon, blood patterns, or other trace evidence."
+  },
+  {
+    "informant": "Surveillance Center", 
+    "description" : "Central hub for accessing and reviewing footage from various locations in the city.\nMight have additional footage of the suspect's movements before or after the crime."
+  },
+  {
+    "informant" : "Underworld Informant",
+    "description": "A confidential source with connections to criminal networks.\nCould provide insights into any potential criminal connections or motives."
+  },
+  {
+     "informant": "Victim's Office",
+     "description": "The businessman's workplace, containing work-related documents and potential clues.\nMight reveal work-related motives or additional suspects."
+  },
+  {
+     "informant" : "Local Pawn Shop",
+     "description": "A place where stolen goods might be sold.\nCould help trace any items stolen from the safe."
+  },
+  {
+     "informant": "Butler's Residence",
+     "description": "The home of the primary suspect.\nMight contain incriminating evidence or provide insights into the butler's motives."
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "questions": [
+    {
+      "question": "Who abducted charly?",
+      "points": 25
+    },
+    {
+      "question": "Why was charly abducted?",
+      "points": 25
+    },
+    {
+      "question": "Where is charly?",
+      "points": 25
+    },
+    {
+      "question": "How was the charly lured away?",
+      "points": 25
+    }
+  ]
+}

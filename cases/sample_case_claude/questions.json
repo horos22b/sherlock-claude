@@ -1,0 +1,7 @@
+{
+  "questions": [
+    {"question": "Who committed the crime?",    "points": 40 },
+    {"question": "What was the murder weapon?", "points": 30 },
+    {"question": "What was the motive?",        "points": 30 }
+  ]
+}

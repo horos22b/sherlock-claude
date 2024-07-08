@@ -1,0 +1,29 @@
+/* Make the sidebar static */
+.wy-nav-side {
+    position: fixed;
+    overflow-y: auto;
+    height: 100%;
+    width: 300px;
+}
+
+/* Adjust the main content area */
+.wy-nav-content-wrap {
+    margin-left: 300px;
+}
+
+.wy-nav-content {
+    max-width: none;
+}
+
+/* Ensure the content is scrollable */
+.wy-nav-content-wrap {
+    height: 100vh;
+    overflow-y: auto;
+}
+
+/* Optional: Improve readability */
+.wy-nav-content {
+    padding: 1.618em 3.236em;
+    max-width: 1000px;
+    margin: auto;
+}

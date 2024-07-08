@@ -1,0 +1,22 @@
+[
+  {
+    "location": "Crime Scene",
+    "description": "The victim was found with a head wound. A bloody candlestick was nearby <<bloody_candlestick.jpg>>"
+  },
+  {
+    "location": "Victim's House",
+    "description": "The safe was open and empty. There are signs of a struggle. Empty safe: <<empty_safe.jpg>> -  Struggle marks on floor: <<floor_marks.jpg>>."
+  },
+  {
+    "location": "Suspect's Workplace",
+    "description": "The butler was absent from work on the day of the murder. Employee attendance record: <<attendance_record.jpg>>. "
+  },
+  {
+    "location": "Local Park",
+    "description": "A witness saw someone matching the suspect's description running through the park. Footprint in the mud: <<footprint.jpg>>"
+  },
+  {
+    "location": "Nearby Shop",
+    "description": "CCTV footage shows the suspect buying gloves and cleaning supplies. CCTV snapshot of suspect <<cctv_snapshot.jpg>>"
+  }
+]

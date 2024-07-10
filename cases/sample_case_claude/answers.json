@@ -1,7 +1,5 @@
-{
-  "answers": [
+[
     { "answer" : "The butler committed the crime.",        "points":  40 },
     { "answer" : "The murder weapon was the candlestick.", "points" : 30 },
     { "answer" : "The motive was theft from the safe.",    "points" : 30 }
-  ]
-}
+]

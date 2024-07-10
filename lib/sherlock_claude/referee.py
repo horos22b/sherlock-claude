@@ -8,7 +8,7 @@ selecting and presenting relevant clues.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
-from sherlock_claude.utils import logger, debug_print
+from sherlock_claude.utils import logger, debug_print, eval_json, ret_json, eval_score, eval_confidence
 from sherlock_claude.config import SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
 
 import json
@@ -149,57 +149,43 @@ Informants: {json.dumps(self.informants, indent=2)}
 
     def best_choice(self, investigator_response):
 
-        def regex_func(_text):
-
-            pattern = r'(\d+)[^\d]*$' 
-            _regex = re.search(pattern, _text, re.DOTALL)
-
-            if _regex:
-                return _regex.group(1)
-
-            return None
-
-        def process_func(response):
-            number = int(response)
-
-            if 0 <= number <= 100:
-                    return number
-
-            return None
-        
         ans = {}
 
         for next_action in [ "I have enough information solve the case and would like to provide a solution. I don't have any other actions I want to take", "I want to look at the newspapers in my next step of investigation", "I would like to visit an informant in my next step of investigation", "I would like to visit a specific person or place next in my next step of investigation that is not an informant" ]:
 
-            if re.search(r'{[^}]+"next_action":[^}]+}', investigator_response, re.DOTALL):
-                _investigator_next_step = re.search(r'({[^}]+"next_action":[^}]+})', investigator_response, re.DOTALL).group(1)
+            if re.search(r'{[^}]+"next_action"\s*:[^}]+}', investigator_response, re.DOTALL):
+                _investigator_next_step = re.search(r'({[^}]+"next_action"\s*:[^}]+})', investigator_response, re.DOTALL).group(1)
 
             else:
                 _investigator_next_step = investigator_response
                 logger.warning(f"claude did not provide a json format at the end here: {_investigator_next_step}")
      
             text = f"""
-please evaluate the following text, and output a number between 0 and 100 on how close the following text: 
+please evaluate the following text, and output a number between 0 and 100 on how close the following text below under the heading 'POTENTIAL ACTION' is to the heading under 'INVESTIGATOR PROPOSED NEXT STEP': 
 
-proposition: "{next_action}"
+POTENTIAL ACTION
+-------
+{next_action}
 
-is to the following investigator statement:
+INVESTIGATOR PROPOSED NEXT STEP
+-------
+{_investigator_next_step}
 
-statement: "{_investigator_next_step}".
-
-Phase your response in terms of a number, again between 0 and 100.  In particular, if it is there, look at the statement after NEXT ACTION and evaluate it.
+Phase your response in terms of a number, again between 0 and 100.  
 
 Please be concise in your answer and return only limited explanation of your rationale, and end with the numbered evaluation.
 
-Format the final part of the response as a JSON object with the following structure, with <score> indicating your final score:
+Format the final part of the response as a JSON object with the following structure, with <score> indicating your final score between 0 and 100, and <reason> indicating your reason:
+
 {{
-        "score": <score>,
+        "score":  <score>,
+        "reason": <reason>
 }}
 """
-
             debug_print("Referee", f"Evaluating next action\n{text}")
 
-            ans[next_action] = self.get_retry_simple_response(text, regex_func, process_func)
+            response =  self.get_retry_simple_response(text, eval_score, lambda x: ret_json(x, 'score'), print_eval="Referee")
+            ans[next_action] = response['score']
 
         _max_act = 0
         for key in ans:
@@ -253,24 +239,22 @@ Format the final part of the response as a JSON object with the following struct
                 self.returned_clues.add(clue['index'])
                 best_clue = self.clues[clue['index']]
 
-                if 'location' not in best_clue:
+                if 'location' in best_clue:
                     _location = best_clue['location']
                     _type = 'location'
                 else:
                     _location = best_clue['informant']
                     _type = 'informant'
    
-                response = f"Based on your current line of inquiry, you investigate {_location}. "\
-                           f"Here's what you find:\n\n{best_clue['description']}"
+                response = f"\n-------\nBased on your current line of inquiry, you investigate {_location}. "\
+                           f"\n-------\nHere's what you find:\n--------\n\n{best_clue['description']}"
                 
-                response += f"\n\nRelevance: {clue['explanation']}"
-
                 debug_print("Referee", f"Providing best clue:\n{response}")
-                return { 'type': _type, 'location': _location, 'response' : response }
+                return { 'type': _type, 'location': _location, 'description' : response }
 
         debug_print("Referee", f"think of a different way around the case. You have already seen the most relevant clues here.")
 
-        return { 'type': 'dead_end', 'location':  'none', 'response':  "Think of a different way around the case. You have already seen the most relevant clues here." }
+        return { 'type': 'dead_end', 'location':  'none', 'description':  "Think of a different way around the case. You have already seen the most relevant clues here." }
 
     def evaluate_answer(self, investigator_answers):
 
@@ -287,29 +271,28 @@ Format the final part of the response as a JSON object with the following struct
             str: A JSON string containing the evaluation results and total score.
         """
 
+#        import pdb
+#        pdb.set_trace()
+
         total_score = 0
         evaluation_results = []
 
         for i, (question, answer) in enumerate(zip(self.questions, self.answers)):
             investigator_answer = investigator_answers['answers'][i]
-            
+        
             prompt = self._create_evaluation_prompt(question, answer, investigator_answer)
             debug_print("Referee", f"Final evaluation:\n{prompt}")
 
-            response = self.get_response(prompt)
-            debug_print("Referee", f"Final evaluation:\n{response}")
+            result =  self.get_retry_simple_response(prompt, eval_confidence, lambda x: ret_json(x, 'confidence'), print_eval="Referee")
+            debug_print("Referee", f"Final evaluation for question {i+1}:\n{result}")
 
-            try:
-                result = json.loads(response)
-                result['question'] = question['question']
-                result['points'] = question['points']
+            result['question'] = question['question']
+            result['points'] = question['points']
                 
-                result['score'] = min(result['score'], question['points'])
+            result['score'] = (result['confidence'] / 100) * question['points']
                 
-                evaluation_results.append(result)
-                total_score += result['score']
-            except json.JSONDecodeError:
-                logger.error(f"Failed to parse referee's evaluation for question {i+1}")
+            evaluation_results.append(result)
+            total_score += result['score']
 
         final_evaluation = {
             "individual_evaluations": evaluation_results,
@@ -394,21 +377,31 @@ Format your response as a JSON object with the following structure:
         debug_print("Referee", "Providing all newspaper articles.")
         return self.newspapers['description']
 
-    def evaluate_answer(self, investigator_answer):
-        correct_answer = next(a for a in self.answers if a['answer'].lower() in investigator_answer['answer'].lower())
-        prompt = f"""Evaluate the following answer:
-        Question: {investigator_answer['question']}
-        Correct Answer: {correct_answer['answer']}
-        Investigator's Answer: {investigator_answer['answer']}
 
-        Provide a score from 0 to {correct_answer['points']} based on the accuracy of the investigator's answer.
+    def _create_evaluation_prompt(self, question, answer, investigator_answer):
+        return f"""Evaluate the following answer critically:
+
+Question: {question['question']}
+Correct Answer: {answer['answer']}
+Investigator's Answer: {investigator_answer['answer']}
+
+Case Solution Summary: {self.solution_data['description']}
+
+Provide a detailed critical evaluation of the investigator's answer. Consider the following:
+
+1. How close is the investigator's answer to the correct answer in terms of content and meaning?
+2. Are there any partial truths or insights in the investigator's answer?
+
+Note that you are only evaluating how close the investigator's statement is to the TRUTH as given in the correct answer. If they say they do not know or are not confident, then the answer they give is INCORRECT and they should get a low confidence score from you. Be as objective and sincere in your answer as possible here. They are trying to solve the case here your evaluation should only reflect how close they got to doing this.
+
+Note too that you are only evaluation THIS QUESTION and its truth value, not how it reflects on other parts of the case. We will do an overall comparison of the full solution in a different query. If the answer is outright wrong, give them 0 points.
+
+Format your response as a JSON object with the following structure:
+{{
+    "evaluation": "<your detailed critical evaluation>",
+    "confidence": <confidence level 0-100>
+}}
         """
-        response = self.get_response(prompt)
-        try:
-            score = int(response)
-            return min(score, correct_answer['points'])
-        except ValueError:
-            return 0
 
     def ask_for_solution(self):
         """
@@ -417,6 +410,7 @@ Format your response as a JSON object with the following structure:
         Returns:
             str: A formatted string containing the prompt for the final solution.
         """
+
         referee_prompt = f"""The investigation is now complete. Based on all the evidence you've gathered, 
         please provide your final answers to the following questions:
 

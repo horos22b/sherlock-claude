@@ -81,9 +81,9 @@ class ClaudeBot:
         if isinstance(prompts, str):
             proc_prompts = [ {'role': 'user', 'content': prompts } ]
             
-        elif isinstance(data, list):
+        elif isinstance(prompts, list):
         
-            proc_prompts = prompts 
+            proc_prompts = [ { 'role': 'user', 'content' : _ } for _ in prompts ]
 
         return self._post_response(proc_prompts)
 
@@ -141,8 +141,8 @@ class ClaudeBot:
                 logger.error(f"Error: {response.status_code}")
                 logger.error(response.text)
 
-                import pdb
-                pdb.set_trace()
+#                import pdb
+#                pdb.set_trace()
 
                 time.sleep(5)
 
@@ -150,16 +150,28 @@ class ClaudeBot:
 
         raise Exception("The system is not available")
 
-    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3):
+    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3, print_eval=False):
 
         for attempt in range(max_retries):
+
             response = self.get_simple_response(text)
+
+            if print_eval:
+                debug_print(print_eval, f"evaled response: {response}")
+
             try:
 
                 eval_result = eval_func(response)
 
                 if not eval_result:
-                    pass
+                    logger.warning(f"retrying {response}")
+
+#                   import pdb
+#                   pdb.set_trace()
+
+                    eval_func(response)
+                    time.sleep(5)  # Wait for 5 seconds before retrying
+                    continue 
 
                 result = process_func(response)
 
@@ -173,7 +185,9 @@ class ClaudeBot:
                 pass
 
             if attempt < max_retries - 1:
-                time.sleep(1)  # Wait for 1 second before retrying
+                time.sleep(5)  # Wait for 5 seconds before retrying
+                logger.warning(f"retrying {response}")
+
 
         raise ValueError(f"Failed to get a valid response after {max_retries} attempts")
 

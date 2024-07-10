@@ -8,6 +8,7 @@ theories based on the information provided.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
+from sherlock_claude.utils import debug_print, eval_json, ret_json
 
 import json
 import re
@@ -38,6 +39,10 @@ class Investigator(ClaudeBot):
         super().__init__("investigator", system_message)
         
         self.setup, _, self.questions, _, _, self.informants, _ = CaseLoader.load_case(case_directory)
+
+#        import pdb
+#        pdb.set_trace()
+
         self.case_information = {
             "setup": self.setup,
             "questions": self.questions,
@@ -77,13 +82,26 @@ Based on this information, what are your initial thoughts? Consider if any of th
         Returns:
             str: The investigator's analysis and proposed next steps.
         """
-        prompt = self._create_analysis_prompt()
+        prompt  = self._create_analysis_prompt()
+        prompt += self._create_pick_prompt()
 
-        import pdb
-        pdb.set_trace()
-
+        debug_print("Investigator", f"inital prompt: {prompt}")
         response = self.get_retry_simple_response(prompt)
+        debug_print("Investigator", f"intiall response: {response}")
+
         return(response)
+
+    def final_theory(self):
+
+        prompt  = self._create_analysis_prompt()
+        prompt += self._create_final_theory_prompt()
+
+        debug_print("Investigator", f"final theory prompt: {prompt}")
+        response = self.get_retry_simple_response(prompt)
+        debug_print("Investigator", f"final theory response: {response}")
+
+        return(response)
+    
 
     def _parse_investigator_choice(self, response):
         # Logic to determine which of the four choices the investigator has made
@@ -95,6 +113,22 @@ Based on this information, what are your initial thoughts? Consider if any of th
             return "visit_informant", response
         else:
             return "suggest_location", response
+
+    def _create_final_theory_prompt(self):
+
+        """
+        Create a prompt for determining final theory based on current case information.
+
+        Returns:
+            str: A formatted string containing the investigator's final theory on the matter.
+        """
+
+        return """
+Given all the information that you have gathered above, Think carefully and determine what do you consider to be the final theory on the case at hand? What are the means, motives, and opportunities of the perpetrators of the given crime or crimes? How do your theories work to explain the evidence of the case at hand? What doubts do you have about your theory and how confident on a scale from 1-100 are you that the theory is correct?
+
+Feel free to elaborate as much as you want about this in your answer.
+"""
+
 
     def _create_analysis_prompt(self):
         """
@@ -123,7 +157,11 @@ Where would you like to investigate next?
 Consider the clues you've received, the informants you know about, and the option to review newspapers (if you haven't already). If you think an informant might be relevant, explicitly mention their name in your response. If you want to review the newspapers and haven't done so yet, state "I would like to review the newspapers."
 
 Remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
+"""
 
+    def _create_pick_prompt(self):
+
+        return """
 IMPORTANT - PLEASE READ WITH HIGHEST PRIORITY. Based on thse insights, respond on how you would like to proceed:
 
 option 1. Review all of the questions above. If you have a high level of confidence that you know the answer to all of these questions, respond with text including the phrase - "provide solution" and indicate to the referee that you are ready to solve it.
@@ -134,19 +172,20 @@ option 3. if you are not ready to solve the case, and you feel that it is the mo
 
 option 4. if you are not ready to solve the case, and you feel that it is will help the most, say that you want to review the newspapers. Mention that you want to do this and the newspapers surrounding the case will be given to you and you can look through them for clues.
 
-Please respond in the format of a JSON file at the end of your response, where <action> is one of 'provide solution', 'visit informant', 'review newspapers', or 'visit person or place'. If the action is to visit a person or place, please mention the person or place in the action. For <reason>, put in the reason why you want to do this.
+Please respond in the format of a JSON file at the end of your response, where <action> is one of 'provide solution', 'visit informant', 'review newspapers', or 'visit person or place'. If the action is to visit an informant, print the informant name. If the action is to visit a person or place, please mention the person or place in the action. For <reason>, put in the reason why you want to do this.
 
 Also, IMPORTANT, please keep your reply to one option as to where to go to next.
 
 {{
-    'action': "<action>",
-    'reason': "<reason>"
+    "next_action": "<action>",
+    "reason": "<reason>"
 }}
 """
 
 
 
     def process_clue(self, investigator_response, referee_response):
+
         """
         Process a new clue and add it to the case information.
 
@@ -156,7 +195,15 @@ Also, IMPORTANT, please keep your reply to one option as to where to go to next.
         """
         self.case_information['clue_path'].append(f"location - {referee_response['location']}, type - {referee_response['type']}") 
 
-        self.case_information['clues'].append(f"my previous thoughts about the investigation and what to do - {investigator_response}\nnew clue given - location:  {referee_response['location']}\nlocation_type:  {referee_response['type']}\n  description: {referee_response['description']}")
+        clue = f"""
+NEW CLUE GIVEN
+----------------- 
+location:       {referee_response['location']}
+location_type:  {referee_response['type']}
+description:    {referee_response['description']}")
+"""
+
+        self.case_information['clues'].append(clue)
 
         debug_print("Investigator", f"clue path: {json.dumps(self.case_information['clue_path'])}")
         debug_print("Investigator", f"next clue: {self.case_information['clues'][-1]}")
@@ -164,14 +211,19 @@ Also, IMPORTANT, please keep your reply to one option as to where to go to next.
 
     def process_newspapers(self, newspapers):
 
-        def eval_json(json_string):
+        def eval_json(json_string, key):
+
+            json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
+
             try:
                 json.loads(json_string)
                 return True
             except json.JSONDecodeError:
                 return False
 
-        def ret_json(json_string):
+        def ret_json(json_string, key):
+
+            json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
             return json.loads(json_string)
 
         """
@@ -193,27 +245,65 @@ Also, IMPORTANT, please keep your reply to one option as to where to go to next.
 
         debug_print("Investigator", f"processing newspapers")
 
-        prompt = f"""You have received the following newspaper articles in bulk:
+        prompt = f"""
+Given all of the above information that you know about the case and the theories and obsservations that you have made, please consider the following newspaper text.
+It is a data dump of a lot of information, some relevant to the case at hand, most irrelevant.
 
+Look through it, and after you are done looking through it please return a JSON datastructure with the following elements. 
+
+<found_clue_description> is the most important found clue you have found in the newspaper and its description. 
+<found_clue_relevance>   is the relevance of this most important clue
+<found_clue_explanation> is your rational as to why you think this is a clue.
+
+
+{{
+    "description" : "<found_clue_description>",
+    "relevance"   : "<found_clue_relevance>",
+    "explanation" : "<found_clue_explanation>"
+}}
+
+Again, please put this JSON datastructure at the end of your response and keep your rationale for it to a minimum. Also please keep your response to one clue that is the most relevant and does not resemble other clues you've seen before. At a later stage you can ask for this newspaper again.
+
+NEWSPAPER DATA BELOW
+------
 ======
 {newspapers_json}
 ======
-
-Please review these articles carefully and identify any information that might be relevant to the case. Consider how this information relates to the clues you've already gathered and the questions you need to answer. What new insights or theories can you formulate based on this information?
-
-Provide a summary of your findings and how they impact your understanding of the case. Finally, please format this as a JSON data structure with the following format, where <description> is the description of the clue or clues that you found, and <explanation> is the explanation of why the clue is important.
-
-{
-    "description" : '<description>',
-    "explanation" : '<explanation>'
-}
 """
         debug_print("Referee", f"Provided newspapers: {prompt}")
 
-        init_prompt = self._create_initial_message()
+        init_prompt = self._create_analysis_prompt()
 
-        response = self.get_retry_simple_response([ init_prompt, prompt ], eval_json, ret_json)
+        response = self.get_retry_simple_response(init_prompt + prompt, lambda x: eval_json(x, 'description'), lambda x: ret_json(x, 'description'))
 
         debug_print("Investigator", f"found the following clues in the newspaper: {response}")
 
         self.case_information['newspaper_clues'].append(response)
+
+    def answer_questions(self):
+
+        questions = self.case_information['questions']
+        answers = []
+
+
+        for question in questions:
+            prompt = f"""Based on all the evidence you've gathered during the investigation, please answer the following question for {question['points']}:
+
+{question['question']}
+
+Provide your answer and your confidence level.
+Format your response as a JSON object with the following structure, where <question> indicates the questions you are going to be answering, <your_answer> indicates the answer you are giving, and <confidence_level> is how confident you are of an answer in the form of a number between 0 and 100:
+{{
+    "question": "<question>",
+    "answer": "<your answer>",
+    "confidence": <confidence_level>
+}}
+"""
+            investigation_prompt  = self._create_analysis_prompt()
+
+            response = self.get_retry_simple_response( investigation_prompt + prompt, lambda x: eval_json(x, 'question'), lambda x: ret_json(x, 'question'))
+            debug_print("Investigator", f"Question: {question['question']}\nResponse: {response}")
+            answers.append(response)
+            
+
+        return {"answers": answers}

@@ -13,8 +13,6 @@ import os
 # Add the lib directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'lib')))
 
-import pdb
-pdb.set_trace()
 from sherlock_claude.investigation import Investigation
 
 def main():

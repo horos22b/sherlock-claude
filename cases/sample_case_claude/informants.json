@@ -19,15 +19,7 @@
     "description": "A confidential source with connections to criminal networks.\nCould provide insights into any potential criminal connections or motives."
   },
   {
-     "informant": "Victim's Office",
-     "description": "The businessman's workplace, containing work-related documents and potential clues.\nMight reveal work-related motives or additional suspects."
-  },
-  {
      "informant" : "Local Pawn Shop",
      "description": "A place where stolen goods might be sold.\nCould help trace any items stolen from the safe."
-  },
-  {
-     "informant": "Butler's Residence",
-     "description": "The home of the primary suspect.\nMight contain incriminating evidence or provide insights into the butler's motives."
   }
 ]

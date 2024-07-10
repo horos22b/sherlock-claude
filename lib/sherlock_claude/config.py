@@ -1,5 +1,6 @@
 """
-This module contains configuration settings for the sherlock claude application.
+This module contains configuration settings for the sherlock claude application. 
+and sets default behaviour
 
 It loads environment variables and defines constants used throughout the application,
 including API settings and model parameters.
@@ -7,9 +8,27 @@ including API settings and model parameters.
 
 import os
 from dotenv import load_dotenv
+import sys
+import traceback
+
+def setup_exception_handler():
+
+    def exception_handler(exc_type, exc_value, exc_traceback):
+        print("An uncaught exception occurred:")
+        traceback.print_exception(exc_type, exc_value, exc_traceback)
+
+    sys.excepthook = exception_handler
+
+setup_exception_handler()
 
 # Load environment variables from .env file
 load_dotenv()
+
+SHERLOCK_DEBUG = os.getenv("SHERLOCK_DEBUG")
+"""str: run in debug mode..."""
+
+SHERLOCK_LITE_DEBUG = os.getenv("SHERLOCK_LITE_DEBUG")
+"""str: run in lite debug mode..."""
 
 # Anthropic API settings
 API_KEY = os.getenv("ANTHROPIC_API_KEY")

@@ -37,7 +37,7 @@ class Investigation:
         """
         self.referee = Referee(case_directory)
         self.investigator = Investigator(case_directory)
-        self.max_iterations = 1
+        self.max_iterations = 2
         self._investigation_complete = False
 
     def run(self):
@@ -47,11 +47,12 @@ class Investigation:
 
         This method manages the main loop of the investigation, conducting
         iterations until the case is solved or the maximum number of iterations
-        is reached.
+        is reached. After each iteration, it checks if the investigation is complete
+        and evaluates the results if it is.
         """
 
-#        import pdb
-#        pdb.set_trace()
+        import pdb
+        pdb.set_trace()
 
         for iteration in range(self.max_iterations):
             logger.info(f"Investigation iteration {iteration + 1}")

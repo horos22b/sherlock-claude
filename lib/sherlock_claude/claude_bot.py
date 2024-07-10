@@ -68,11 +68,11 @@ class ClaudeBot:
         """
         Send a simple request to the Claude API and get a response.
 
-        This method makes a simple request out of the given the arguments and passes it 
+        This method makes a simple request out of the given arguments and passes it 
         to the Claude API.
 
         Args:
-            prompt (list|str): The input prompt to send to the API.
+            prompts (list|str): The input prompt(s) to send to the API.
 
         Returns:
             str: The text content of the API response, or None if an error occurred.
@@ -151,6 +151,27 @@ class ClaudeBot:
         raise Exception("The system is not available")
 
     def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3, print_eval=False):
+
+        """
+        Send a request to the Claude API with retry functionality and custom evaluation.
+    
+        This method sends a request to the API and retries if the response doesn't meet
+        the criteria specified by the evaluation function. It also allows for custom
+        processing of the response.
+    
+        Args:
+            text (str): The input text to send to the API.
+            eval_func (function, optional): A function to evaluate the API response. Defaults to always return True.
+            process_func (function, optional): A function to process the API response. Defaults to identity function.
+            max_retries (int, optional): The maximum number of retry attempts. Defaults to 3.
+            print_eval (bool, optional): Whether to print the evaluation result. Defaults to False.
+    
+        Returns:
+            The processed API response if successful, or None if all retries fail.
+    
+        Raises:
+            ValueError: If a valid response cannot be obtained after the maximum number of retries.
+        """
 
         for attempt in range(max_retries):
 

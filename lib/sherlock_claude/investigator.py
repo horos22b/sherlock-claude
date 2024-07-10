@@ -78,7 +78,12 @@ Based on this information, what are your initial thoughts? Consider if any of th
     def analyze_case(self):
         """
         Analyze the current state of the case and formulate next steps.
-
+    
+        This method generates a prompt summarizing the current case information,
+        including the initial setup, questions to answer, informants, clues discovered,
+        and newspaper clues. It then sends this prompt to the Claude API to get the
+        investigator's analysis and proposed next steps.
+    
         Returns:
             str: The investigator's analysis and proposed next steps.
         """
@@ -92,6 +97,17 @@ Based on this information, what are your initial thoughts? Consider if any of th
         return(response)
 
     def final_theory(self):
+
+        """
+        Generate the final theory for the case based on all gathered information.
+    
+        This method creates a prompt that includes all the case information and asks
+        for a final theory on the case. It then sends this prompt to the Claude API
+        to get the investigator's final theory.
+    
+        Returns:
+            str: The investigator's final theory on the case.
+        """
 
         prompt  = self._create_analysis_prompt()
         prompt += self._create_final_theory_prompt()
@@ -211,6 +227,22 @@ description:    {referee_response['description']}")
 
     def process_newspapers(self, newspapers):
 
+        """
+        Process the bulk newspaper data.
+
+        This method generates a prompt summarizing the case information,
+        including the initial setup, questions to answer, special investigation
+        spots, and any gathered evidence. It then sends this prompt to the
+        Claude API to get the investigator's analysis of the newspaper articles.
+
+        Args:
+            newspapers (list): A list of newspaper articles.
+
+        Returns:
+            dict: The investigator's analysis of the newspaper articles, containing
+                  'description', 'relevance', and 'explanation' keys.
+        """
+
         def eval_json(json_string, key):
 
             json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
@@ -226,20 +258,6 @@ description:    {referee_response['description']}")
             json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
             return json.loads(json_string)
 
-        """
-        Process the bulk newspaper data.
-
-        This method generates a prompt summarizing the case information,
-        including the initial setup, questions to answer, special investigation
-        spots, and any gathered evidence. It then sends this prompt to the
-        Claude API to get the investigator's analysis and next steps.
-
-        Args:
-            newspapers (list): A list of newspaper articles.
-
-        Returns:
-            str: The investigator's analysis of the newspaper articles.
-        """
         self.case_information['newspapers'] = newspapers
         newspapers_json = json.dumps(newspapers, indent=2)
 
@@ -281,6 +299,18 @@ NEWSPAPER DATA BELOW
         self.case_information['newspaper_clues'].append(response)
 
     def answer_questions(self):
+
+        """
+        Provide final answers to the case questions based on the investigation.
+    
+        This method generates a prompt for each question in the case, including all
+        the evidence gathered during the investigation. It then sends these prompts
+        to the Claude API to get the investigator's final answers and confidence levels.
+    
+        Returns:
+            dict: A dictionary containing the answers to each question and the 
+                  investigator's confidence level for each answer.
+        """
 
         questions = self.case_information['questions']
         answers = []

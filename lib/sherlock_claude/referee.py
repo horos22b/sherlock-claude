@@ -149,6 +149,19 @@ Informants: {json.dumps(self.informants, indent=2)}
 
     def best_choice(self, investigator_response):
 
+        """
+        Evaluate the investigator's proposed next action and determine the best choice.
+
+        This method compares the investigator's proposed next step against a set of
+        predefined actions and determines which action is the closest match.
+
+        Args:
+            investigator_response (str): The investigator's proposed next action.
+
+        Returns:
+            str: The best matching action for the investigator to take next.
+        """
+
         ans = {}
 
         for next_action in [ "I have enough information solve the case and would like to provide a solution. I don't have any other actions I want to take", "I want to look at the newspapers in my next step of investigation", "I would like to visit an informant in my next step of investigation", "I would like to visit a specific person or place next in my next step of investigation that is not an informant" ]:

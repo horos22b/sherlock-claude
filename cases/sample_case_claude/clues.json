@@ -13,11 +13,11 @@
   },
   {
     "location": "Local Park",
-    "description": "A witness saw someone matching the suspect's description running through the park. Footprint in the mud: <<footprint.jpg>>"
+    "description": "A witness saw someone matching the butler's description running through the park, with a sack in his hand. Footprint in the mud: <<footprint.jpg>>"
   },
   {
     "location": "Nearby Shop",
-    "description": "CCTV footage shows the suspect buying gloves and cleaning supplies. CCTV snapshot of suspect <<cctv_snapshot.jpg>>"
+    "description": "CCTV footage shows the butler buying gloves and cleaning supplies. CCTV snapshot of butler <<cctv_snapshot.jpg>>"
   },
   {
      "location"   : "butler's residence",

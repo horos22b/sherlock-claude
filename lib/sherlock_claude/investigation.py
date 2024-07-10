@@ -36,7 +36,7 @@ class Investigation:
         """
         self.referee = Referee(case_directory)
         self.investigator = Investigator(case_directory)
-        self.max_iterations = 100
+        self.max_iterations = 1
         self._investigation_complete = False
 
     def run(self):
@@ -49,8 +49,8 @@ class Investigation:
         is reached.
         """
 
-        import pdb
-        pdb.set_trace()
+#        import pdb
+#        pdb.set_trace()
 
         for iteration in range(self.max_iterations):
             logger.info(f"Investigation iteration {iteration + 1}")
@@ -59,9 +59,11 @@ class Investigation:
             
             if self._is_investigation_complete(iteration):
                 self._evaluate_investigation()
+                sys.exit(0)
 
         logger.info("Maximum iterations reached. returning evaluating now\n") 
         self._evaluate_investigation()
+        sys.exit(0)
 
     def _conduct_investigation_iteration(self):
 
@@ -82,13 +84,11 @@ class Investigation:
             newspapers = self.referee.provide_newspapers()
             investigator_analysis = self.investigator.process_newspapers(newspapers)
 #           debug_print("Investigator", f"Newspaper analysis:\n{investigator_analysis}")
+
         elif "solution" in choice:
             self._investigation_complete = True
 
         else:
-
-            import pdb
-            pdb.set_trace()
 
             referee_response = self.referee.provide_best_clue(investigator_response)
 #           debug_print("Referee", f"Providing clue:\n  description: {referee_response['description']}\n  location: {referee_response['location']}\n  type: {referee_response['type']}")
@@ -144,14 +144,18 @@ class Investigation:
         referee_prompt = self.referee.ask_for_solution()
 
         # Get the solution prompt from the referee
-        investigator_answers = self.investigator.answer_questions(referee_prompt)
+        investigator_answers = self.investigator.answer_questions()
 
         # Evaluate the investigator's answers
-        if investigator_answers:
-            evaluation = self.referee.evaluate_answer(investigator_answers)
+
+#        import pdb
+#        pdb.set_trace()
+
+        evaluation = self.referee.evaluate_answer(investigator_answers)
             
-            # Log the evaluation results
-            self._log_evaluation_results(evaluation)
+        # Log the evaluation results
+        self._log_evaluation_results(evaluation)
+
 
     def _log_evaluation_results(self, evaluation):
 
@@ -185,16 +189,16 @@ class Investigation:
                 logger.info(f"Score: {result['score']}/{result['points']}")
                 logger.info("---")
 
-                f.write(f"Question: {result['question']}")
-                f.write(f"Evaluation: {result['evaluation']}")
-                f.write(f"Score: {result['score']}/{result['points']}")
-                f.write("---")
+                fh.write(f"Question: {result['question']}")
+                fh.write(f"Evaluation: {result['evaluation']}")
+                fh.write(f"Score: {result['score']}/{result['points']}")
+                fh.write("---")
 
-            final_theory = self.investigator.get_response("Please provide your final theory of the case based on all the evidence you've gathered.")
+            _final_theory = self.investigator.final_theory()
         
-            f.write(f"Investigator's Final Theory:\n{final_theory}\n\n")
-            f.write(f"Actual Solution:\n{self.referee.solution_data['description']}\n\n")
-            f.write(f"Total Score: {total_score}/{sum(q['points'] for q in self.referee.questions)}")
+            fh.write(f"Investigator's Final Theory:\n{_final_theory}\n\n")
+            fh.write(f"Actual Solution:\n{self.referee.solution_data['description']}\n\n")
+            fh.write(f"Total Score: {total_score}/{sum(q['points'] for q in self.referee.questions)}")
 
         except json.JSONDecodeError:
 

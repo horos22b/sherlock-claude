@@ -10,6 +10,7 @@ from sherlock_claude.referee import Referee
 from sherlock_claude.investigator import Investigator
 from sherlock_claude.utils import logger, debug_print
 
+import sys
 import json
 
 class Investigation:

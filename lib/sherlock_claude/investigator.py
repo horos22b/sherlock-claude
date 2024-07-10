@@ -43,7 +43,8 @@ class Investigator(ClaudeBot):
             "questions": self.questions,
             "informants": self.informants,
             "clues": [],
-            "newspapers": None,
+            "clue_path" : [],
+            "newspaper_clues": []
         }
         
         initial_message = self._create_initial_message()
@@ -77,7 +78,23 @@ Based on this information, what are your initial thoughts? Consider if any of th
             str: The investigator's analysis and proposed next steps.
         """
         prompt = self._create_analysis_prompt()
-        return self.get_response(prompt)
+
+        import pdb
+        pdb.set_trace()
+
+        response = self.get_retry_simple_response(prompt)
+        return(response)
+
+    def _parse_investigator_choice(self, response):
+        # Logic to determine which of the four choices the investigator has made
+        if "I would like to review the newspapers" in response:
+            return "read_newspapers"
+        elif "I am ready to provide a solution" in response:
+            return "provide_solution"
+        elif any(informant["informant"] in response for informant in self.case_information["informants"]):
+            return "visit_informant", response
+        else:
+            return "suggest_location", response
 
     def _create_analysis_prompt(self):
         """
@@ -97,7 +114,7 @@ Informants: {json.dumps(self.case_information['informants'], indent=2)}
 Clues discovered:
 {json.dumps(self.case_information['clues'], indent=2)}
 
-Newspapers reviewed: {"Yes" if self.case_information['newspapers'] else "No"}
+Newspapers clues: {json.dumps(self.case_information['newspaper_clues'])}
 
 Based on all this information, what are your current thoughts on the case? 
 
@@ -105,18 +122,58 @@ Where would you like to investigate next?
 
 Consider the clues you've received, the informants you know about, and the option to review newspapers (if you haven't already). If you think an informant might be relevant, explicitly mention their name in your response. If you want to review the newspapers and haven't done so yet, state "I would like to review the newspapers."
 
-Remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps."""
+Remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
 
-    def process_clue(self, clue):
+IMPORTANT - PLEASE READ WITH HIGHEST PRIORITY. Based on thse insights, respond on how you would like to proceed:
+
+option 1. Review all of the questions above. If you have a high level of confidence that you know the answer to all of these questions, respond with text including the phrase - "provide solution" and indicate to the referee that you are ready to solve it.
+
+option 2. if you aren't ready to solve the case, and you feel that visiting a person or place that has been mentioned in the context above would be most helpful in your investigation, please indicate that you want to visit that person or place next, and mention it by name in your responses.
+
+option 3. if you are not ready to solve the case, and you feel that it is the most hopeful course of action, pick an informant in your list of informants to go to next. Indicate which informant you want to talk to, and the rationale as to why you want to do this.
+
+option 4. if you are not ready to solve the case, and you feel that it is will help the most, say that you want to review the newspapers. Mention that you want to do this and the newspapers surrounding the case will be given to you and you can look through them for clues.
+
+Please respond in the format of a JSON file at the end of your response, where <action> is one of 'provide solution', 'visit informant', 'review newspapers', or 'visit person or place'. If the action is to visit a person or place, please mention the person or place in the action. For <reason>, put in the reason why you want to do this.
+
+Also, IMPORTANT, please keep your reply to one option as to where to go to next.
+
+{{
+    'action': "<action>",
+    'reason': "<reason>"
+}}
+"""
+
+
+
+    def process_clue(self, investigator_response, referee_response):
         """
         Process a new clue and add it to the case information.
 
         Args:
-            clue (dict): The clue to process.
+            investigator_response (str): the prompt from the investigator that determined the location.
+            referee_response (dict): the clue given to the investigator by the referee.
         """
-        self.case_information['clues'].append(clue)
+        self.case_information['clue_path'].append(f"location - {referee_response['location']}, type - {referee_response['type']}") 
+
+        self.case_information['clues'].append(f"my previous thoughts about the investigation and what to do - {investigator_response}\nnew clue given - location:  {referee_response['location']}\nlocation_type:  {referee_response['type']}\n  description: {referee_response['description']}")
+
+        debug_print("Investigator", f"clue path: {json.dumps(self.case_information['clue_path'])}")
+        debug_print("Investigator", f"next clue: {self.case_information['clues'][-1]}")
+
 
     def process_newspapers(self, newspapers):
+
+        def eval_json(json_string):
+            try:
+                json.loads(json_string)
+                return True
+            except json.JSONDecodeError:
+                return False
+
+        def ret_json(json_string):
+            return json.loads(json_string)
+
         """
         Process the bulk newspaper data.
 
@@ -133,31 +190,30 @@ Remember to keep the initial setup and questions in mind as you formulate your t
         """
         self.case_information['newspapers'] = newspapers
         newspapers_json = json.dumps(newspapers, indent=2)
+
+        debug_print("Investigator", f"processing newspapers")
+
         prompt = f"""You have received the following newspaper articles in bulk:
 
+======
 {newspapers_json}
+======
 
 Please review these articles carefully and identify any information that might be relevant to the case. Consider how this information relates to the clues you've already gathered and the questions you need to answer. What new insights or theories can you formulate based on this information?
 
-Provide a summary of your findings and how they impact your understanding of the case."""
+Provide a summary of your findings and how they impact your understanding of the case. Finally, please format this as a JSON data structure with the following format, where <description> is the description of the clue or clues that you found, and <explanation> is the explanation of why the clue is important.
 
-        return self.get_response(prompt)
+{
+    "description" : '<description>',
+    "explanation" : '<explanation>'
+}
+"""
+        debug_print("Referee", f"Provided newspapers: {prompt}")
 
-    def get_response(self, prompt, images=None):
-        """
-        Get a response from the AI, including all gathered case information.
+        init_prompt = self._create_initial_message()
 
-        Args:
-            prompt (str): The prompt to send to the AI.
-            images (list, optional): A list of images to include in the request.
+        response = self.get_retry_simple_response([ init_prompt, prompt ], eval_json, ret_json)
 
-        Returns:
-            str: The AI's response.
-        """
-        full_prompt = f"""Case Information:
-{json.dumps(self.case_information, indent=2)}
+        debug_print("Investigator", f"found the following clues in the newspaper: {response}")
 
-Current Prompt:
-{prompt}"""
-
-        return super().get_response(full_prompt, images)
+        self.case_information['newspaper_clues'].append(response)

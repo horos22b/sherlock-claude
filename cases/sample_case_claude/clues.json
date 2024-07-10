@@ -18,5 +18,37 @@
   {
     "location": "Nearby Shop",
     "description": "CCTV footage shows the suspect buying gloves and cleaning supplies. CCTV snapshot of suspect <<cctv_snapshot.jpg>>"
+  },
+  {
+     "location"   : "butler's residence",
+     "description": "The butler's residence looks like someone has recently packed. A couple of jewels that look like they match jewels seen at the Victim's house were found under the bed" 
+  },
+  {
+     "location": "Victim's Office",
+     "description": "The victim's office was a mess, with the papers rifled through. It looks like the safe was tampered with and opened, because it was empty."
+  },
+  {
+    "informant": "Forensic Lab",
+    "description": "the forensic expect indicates that the victim died immediately from blunt force trauma. A fingerprint was lifted from a bloody candlestick found at the scene, but there was no record of it in the system"
+  },
+  { 
+    "informant":   "Times Foreign Correspondents Bureau",
+    "description": "The times has no relevant information about the case"
+  },
+  {
+    "informant":  "City Records Office",
+    "description": "City records show that the butler was deep in debt and in danger of being evicted from his apartment at the time of the victim's murder."
+  },
+  {
+    "informant": "Surveillance Center", 
+    "description" : "surveillance footage shows multiple people entering and exiting the victim's house through the front door but only the butler did not leave. The back door was not monitored."
+  },
+  {
+    "informant" : "Underworld Informant",
+    "description": "The underworld informant did not have any information to give at the time."
+  },
+  {
+     "informant" : "Local Pawn Shop",
+     "description": "The pawn shop remembers talking to the butler a week ago about selling some goods but he hasn't seen him since."
   }
 ]

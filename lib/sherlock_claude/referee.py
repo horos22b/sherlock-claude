@@ -8,7 +8,8 @@ selecting and presenting relevant clues.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
-from sherlock_claude.utils import logger
+from sherlock_claude.utils import logger, debug_print
+from sherlock_claude.config import SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
 
 import json
 import re
@@ -30,7 +31,6 @@ class Referee(ClaudeBot):
         informants (dict): Information about informants or special investigation spots.
         newspapers (list): Information about newspapers.
         returned_clues (set): A set of indices of clues already provided to the Investigator.
-        returned_newspapers (set): A set of indices of newspapers already provided to the Investigator.
     """
 
     def __init__(self, case_directory):
@@ -45,10 +45,10 @@ class Referee(ClaudeBot):
         
         self.setup, self.clues, self.questions, self.answers, self.solution_data, self.informants, self.newspapers = CaseLoader.load_case(case_directory)
         self.returned_clues = set()
-        self.returned_newspapers = set()
 
         initial_message = self._create_initial_message()
-        self.get_response(initial_message)
+        self.get_response(initial_message, dryrun=True)
+
 
     def _create_initial_message(self):
         """
@@ -85,10 +85,14 @@ Informants: {json.dumps(self.informants, indent=2)}
         """
         prompt = self._create_ranking_prompt(investigator_statement, clue, index)
         
-        images = re.findall(r'data:image/[^;]+;base64,[^"]+', clue['description'])
-        
         for _ in range(3):  # Try up to 3 times
-            response = self.get_response(prompt, images=images)
+
+            debug_print("Referee", f"Looking at clue: {json.dumps(prompt)}")
+
+            response = self.get_simple_response(prompt)
+
+            debug_print("Referee", f"Reponse to clue: {json.dumps(response)}")
+
             try:
                 ranked_clue = json.loads(response)
                 return ranked_clue
@@ -109,24 +113,104 @@ Informants: {json.dumps(self.informants, indent=2)}
         Returns:
             str: A formatted string containing the ranking instructions and clue information.
         """
-        return f"""Based on the investigator's statement: '{investigator_statement}', 
-        rank the following clue on a scale of 1-100 based on how relevant and helpful 
-        it would be to the investigator right now. Higher scores mean more relevant. 
-        Provide the score and a brief explanation of why you gave that score.
+        return f"""
+        You are now going to be evaluating the investigator's statement - and trying to match it against a given clue, which contains information on where the clue is and the contents of the clue.
+
+        Your goal is to figure out how close a given clue is on a scale of 0 to 100. If the clue doesn't match the investigator's statement at all, give the clue a 0. If the clue mentions wanting to go to an informant and matches the clue's location exactly, then give that location a 100. I will prefix the investigator's statement with INVESTIGATOR STATEMENT and put it between dashes -------. I will do the same for the clue.
+
+        INVESTIGATOR STATEMENT
+        ----------------------
+        {investigator_statement} 
+        ----------------------
+
+        CLUE TO MATCH INVESTIGATOR STATEMENT WITH
+        ----------------------
+        {json.dumps(clue, indent=2)}
+        ----------------------
+ 
+        Again, please rank the 'INVESTIGATOR STATEMENT' section above with the 'CLUE' section above, on a scale of 1-100 based on how close it matches the 
+        investigator's statement.
+
+        Please be discerning and don't make a determination based on how helpful the clue is, 
+        this should be based only on the intent of the investigator. It need to discover the clues by itself.
         
-        If the investigator's statement mentions a special investigation spot that matches 
+        If the investigator's statement mentions a informant spot that matches 
         this clue's location exactly, give it a score of 100.
         
-        Clue to rank:
-        {json.dumps(clue, indent=2)}
-        
-        Format your response as a JSON object with the following structure:
+        Finally, Format your response as a JSON object with the following structure, 
+        where <score> is the score given and <explanation> is your short explanation:
+
         {{
             "index": {index},
             "score": <score>,
             "explanation": "<explanation>"
         }}
         """
+
+    def best_choice(self, investigator_response):
+
+        def regex_func(_text):
+
+            pattern = r'(\d+)[^\d]*$' 
+            _regex = re.search(pattern, _text, re.DOTALL)
+
+            if _regex:
+                return _regex.group(1)
+
+            return None
+
+        def process_func(response):
+            number = int(response)
+
+            if 0 <= number <= 100:
+                    return number
+
+            return None
+        
+        ans = {}
+
+        for next_action in [ "I have enough information solve the case and would like to provide a solution. I don't have any other actions I want to take", "I want to look at the newspapers in my next step of investigation", "I would like to visit an informant in my next step of investigation", "I would like to visit a specific person or place next in my next step of investigation that is not an informant" ]:
+
+            if re.search(r'{[^}]+"next_action":[^}]+}', investigator_response, re.DOTALL):
+                _investigator_next_step = re.search(r'({[^}]+"next_action":[^}]+})', investigator_response, re.DOTALL).group(1)
+
+            else:
+                _investigator_next_step = investigator_response
+                logger.warning(f"claude did not provide a json format at the end here: {_investigator_next_step}")
+     
+            text = f"""
+please evaluate the following text, and output a number between 0 and 100 on how close the following text: 
+
+proposition: "{next_action}"
+
+is to the following investigator statement:
+
+statement: "{_investigator_next_step}".
+
+Phase your response in terms of a number, again between 0 and 100.  In particular, if it is there, look at the statement after NEXT ACTION and evaluate it.
+
+Please be concise in your answer and return only limited explanation of your rationale, and end with the numbered evaluation.
+
+Format the final part of the response as a JSON object with the following structure, with <score> indicating your final score:
+{{
+        "score": <score>,
+}}
+"""
+
+            debug_print("Referee", f"Evaluating next action\n{text}")
+
+            ans[next_action] = self.get_retry_simple_response(text, regex_func, process_func)
+
+        _max_act = 0
+        for key in ans:
+            if ans[key] > _max_act:
+                _max_act = ans[key]
+                _ret_key =  key
+
+        debug_print("Referee", f"Evaluation hash:\nwinning key - '{_ret_key}' - eval hash - {json.dumps(ans,indent=2)}")
+
+        return _ret_key
+
 
     def rank_clues(self, investigator_statement):
 
@@ -168,13 +252,25 @@ Informants: {json.dumps(self.informants, indent=2)}
             if clue['index'] not in self.returned_clues:
                 self.returned_clues.add(clue['index'])
                 best_clue = self.clues[clue['index']]
-                response = f"Based on your current line of inquiry, I think you should investigate {best_clue['location']}. "\
+
+                if 'location' not in best_clue:
+                    _location = best_clue['location']
+                    _type = 'location'
+                else:
+                    _location = best_clue['informant']
+                    _type = 'informant'
+   
+                response = f"Based on your current line of inquiry, you investigate {_location}. "\
                            f"Here's what you find:\n\n{best_clue['description']}"
                 
                 response += f"\n\nRelevance: {clue['explanation']}"
-                return response
 
-        return "Think of a different way around the case. You have already seen the most relevant clues here."
+                debug_print("Referee", f"Providing best clue:\n{response}")
+                return { 'type': _type, 'location': _location, 'response' : response }
+
+        debug_print("Referee", f"think of a different way around the case. You have already seen the most relevant clues here.")
+
+        return { 'type': 'dead_end', 'location':  'none', 'response':  "Think of a different way around the case. You have already seen the most relevant clues here." }
 
     def evaluate_answer(self, investigator_answers):
 
@@ -198,7 +294,11 @@ Informants: {json.dumps(self.informants, indent=2)}
             investigator_answer = investigator_answers['answers'][i]
             
             prompt = self._create_evaluation_prompt(question, answer, investigator_answer)
+            debug_print("Referee", f"Final evaluation:\n{prompt}")
+
             response = self.get_response(prompt)
+            debug_print("Referee", f"Final evaluation:\n{response}")
+
             try:
                 result = json.loads(response)
                 result['question'] = question['question']
@@ -215,6 +315,8 @@ Informants: {json.dumps(self.informants, indent=2)}
             "individual_evaluations": evaluation_results,
             "total_score": total_score
         }
+
+        debug_print("Referee", f"Final evaluation:\n{json.dumps(final_evaluation, indent=2)}")
 
         return json.dumps(final_evaluation, indent=2)
 
@@ -288,7 +390,25 @@ Format your response as a JSON object with the following structure:
         Returns:
             list: A list of all newspaper articles.
         """
+
+        debug_print("Referee", "Providing all newspaper articles.")
         return self.newspapers['description']
+
+    def evaluate_answer(self, investigator_answer):
+        correct_answer = next(a for a in self.answers if a['answer'].lower() in investigator_answer['answer'].lower())
+        prompt = f"""Evaluate the following answer:
+        Question: {investigator_answer['question']}
+        Correct Answer: {correct_answer['answer']}
+        Investigator's Answer: {investigator_answer['answer']}
+
+        Provide a score from 0 to {correct_answer['points']} based on the accuracy of the investigator's answer.
+        """
+        response = self.get_response(prompt)
+        try:
+            score = int(response)
+            return min(score, correct_answer['points'])
+        except ValueError:
+            return 0
 
     def ask_for_solution(self):
         """
@@ -297,7 +417,7 @@ Format your response as a JSON object with the following structure:
         Returns:
             str: A formatted string containing the prompt for the final solution.
         """
-        return f"""The investigation is now complete. Based on all the evidence you've gathered, 
+        referee_prompt = f"""The investigation is now complete. Based on all the evidence you've gathered, 
         please provide your final answers to the following questions:
 
         {json.dumps(self.questions, indent=2)}
@@ -315,3 +435,7 @@ Format your response as a JSON object with the following structure:
             ]
         }}
         """
+
+        debug_print("Referee", f"Asking for final solution:\n{referee_prompt}")
+
+        return referee_prompt

@@ -4,9 +4,12 @@ Sherlock Claude is an interactive detective game that uses AI to simulate a crim
 
 ## slideshow and demo:
 
-[slideshow part 1](docs/presentation/slideshow.mp4)
-[demo](docs/presentation/slideshow2.mp4)
-[slideshow part 2](docs/presentation/slideshow3.mp4)
+- [slideshow part 1](docs/presentation/slideshow.mp4)
+
+- [demo](docs/presentation/slideshow2.mp4)
+
+- [slideshow part 2](docs/presentation/slideshow3.mp4)
+
 
 ## API Structure 
 

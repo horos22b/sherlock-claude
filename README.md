@@ -1,6 +1,30 @@
-# Sherlock Claude: AI-Powered Detective Game
+# Sherlock Claude: AI-Powered Detective Simulation
 
 Sherlock Claude is an interactive detective game that uses AI to simulate a crime-solving experience. The game features an AI investigator that analyzes clues and attempts to solve a mystery, guided by an AI referee.
+
+## What are Detective Games
+
+Detective games are games that put players in the role of a detective. There has been some event 
+that requires players to explore, formulate plans, and navigate the fictional world where the 
+scenario takes place and piece together a puzzle. Games like SHCD, Detective Hong-Kong, Chronicles
+of Crime, and many others are very popular and have a large following on the internet.
+
+
+## Why make a Bot to solve them.
+
+One of the things that distinguish Detective games from other intelligence puzzles is they are 
+mostly framed as puzzles in the *human* world, as opposed to the *physical* world. So factors like
+deception, human nature and its failings, theory of mind, creativity, evaluation of empirical 
+evidence, puzzle solving, and many other facets that are typically not tested in other chatbot 
+tests are readily tested here.
+
+Furthermore, the tests can be done in measurable way. There *is* a solution so you can gauge the 
+performance of a chatbot on that solution against known answers and get a numerical score.
+
+And finally, these cases can be quite hard, which means that a metric developed around these 
+tests is likely very open-ended, and could be a good way to distinguish between even very 
+high level bots.
+
 
 ## slideshow and demo:
 

@@ -366,7 +366,7 @@ how the investigator did and returns its score.</y>
 <g>Demo</g>
 
 
-<y>.....</y>
+<y>demo done here</y>
 
 
 -------
@@ -374,7 +374,9 @@ how the investigator did and returns its score.</y>
 <g>Results</g>
 
 
-<y>.....</y>
+<y>As it stands, the flow works, and claude-haiku can solve simple mysteries. 
+
+Much more work needs to be done to give a definitive answer for claude-sonnet</y>
 
 
 -------
@@ -387,7 +389,7 @@ how the investigator did and returns its score.</y>
 
 Immediate steps here are:</y>
 
-<p>    - uploading the fan created cases tested here to github after talking to the case owners
+<p>    - getting more people involved, scaling up resources
 
     - reaching out to Space Cowboys to test the rest of the published cases
 
@@ -437,9 +439,8 @@ differences in intelligence between even very smart chatbots.</y>
 <g>Links</g>
 
 
-<y>This project heavily relied on testing with casees from the game Sherlock's Holmes 
-Consulting Detective. We used fan-made cases, but there are a 
-series of these games sold by Space Cowboys, main site here:</y>
+<y>This project was heavily inspired by the cases from the game Sherlock's Holmes 
+Consulting Detective. There are series of these games sold by Space Cowboys, main site here:</y>
 
     <p>https://www.spacecowboys.fr/sherlock-holmes-consultingdetective</p>
 

@@ -19,6 +19,84 @@ base64_image_pattern = re.compile(r'(?:iV)[A-Za-z0-9+/=]{40,}')
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def replace_quote_newlines(text):
+
+    """
+    Replace newline characters with '\\n' only within single or double quoted strings.
+    
+    Args:
+        text (str): The input text to process.
+    
+    Returns:
+        str: The processed text with newlines replaced only within quoted strings.
+    """
+
+    def replace_newlines(match):
+        # Get the quote character used (single or double)
+        quote = match.group(1)
+        # Get the content of the string
+        content = match.group(2)
+        # Replace newlines in the content
+        content = content.replace('\n', '\\n')
+        # Return the string with the original quotes
+        return f"{quote}{content}{quote}"
+
+    pattern = r'(["\'"])((?:(?!\1).|\n)*?)\1'
+
+    text = re.sub(r"'", "", text)    
+    return re.sub(pattern, replace_newlines, text, flags=re.DOTALL)
+
+def eval_score(response):
+
+    if not eval_json(response, 'score'):
+        return False
+
+    dat = ret_json(response, 'score')
+    score = dat['score']
+
+    if score is not None and 0 <= score <= 100:
+        return True
+    return False
+
+def eval_confidence(response):
+
+    if not eval_json(response, 'confidence'):
+        return False
+
+    dat = ret_json(response, 'confidence')
+    score = dat['confidence']
+
+    if score is not None and 0 <= score <= 100:
+        return True
+
+    return False
+
+
+def eval_json(json_string, key):
+
+    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL)
+
+    if not json_string:
+        return False
+
+    try:
+        _json = json_string.group(1)
+        _json = replace_quote_newlines(_json)
+
+        json.loads(_json)
+
+        return True
+    except json.JSONDecodeError:
+        return False
+
+def ret_json(json_string, key):
+
+    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
+    json_string = replace_quote_newlines(json_string)
+
+    return json.loads(json_string)
+
+
 def load_json(file_path):
 
     """

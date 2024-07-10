@@ -13,10 +13,10 @@ of Crime, and many others are very popular and have a large following on the int
 ## Why make a Bot to solve them.
 
 One of the things that distinguish Detective games from other intelligence puzzles is they are 
-mostly framed as puzzles in the *human* world, as opposed to the *physical* world. So factors like
-deception, human nature and its failings, theory of mind, creativity, evaluation of empirical 
-evidence against competing theories, and many other facets of human intelligence that are 
-typically not tested in other automated chatbot tests are readily tested here.
+mostly framed as puzzles in the *human* world, as opposed to the *mathematical* or *logical* 
+world. So factors like deception, human nature and its failings, theory of mind, creativity, 
+evaluation of empirical evidence against competing theories, and many other facets of human 
+intelligence that are typically not tested in other automated chatbot tests are readily tested here.
 
 Furthermore, the tests can be done in measurable way. There *is* a solution so you can gauge the 
 performance of a chatbot on that solution against known answers and get a numerical score.

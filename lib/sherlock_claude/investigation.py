@@ -51,9 +51,6 @@ class Investigation:
         and evaluates the results if it is.
         """
 
-        import pdb
-        pdb.set_trace()
-
         for iteration in range(self.max_iterations):
             logger.info(f"Investigation iteration {iteration + 1}")
             

@@ -5,10 +5,12 @@ The ClaudeBot class handles API communication, message management, and response 
 It serves as a foundation for more specialized AI agents in the investigation system.
 """
 
+import os
+import time
 import requests
-
-from sherlock_claude.config import API_KEY, API_URL, MODEL, MAX_TOKENS, ANTHROPIC_VERSION
-from sherlock_claude.utils import logger
+import json
+from sherlock_claude.config import API_KEY, API_URL, MODEL, MAX_TOKENS, ANTHROPIC_VERSION, SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
+from sherlock_claude.utils import logger, debug_print
 
 class ClaudeBot:
 
@@ -61,7 +63,32 @@ class ClaudeBot:
 
         self.messages.append({"role": role, "content": content})
 
-    def get_response(self, prompt, images=None):
+    def get_simple_response(self, prompts):
+
+        """
+        Send a simple request to the Claude API and get a response.
+
+        This method makes a simple request out of the given the arguments and passes it 
+        to the Claude API.
+
+        Args:
+            prompt (list|str): The input prompt to send to the API.
+
+        Returns:
+            str: The text content of the API response, or None if an error occurred.
+        """
+
+        if isinstance(prompts, str):
+            proc_prompts = [ {'role': 'user', 'content': prompts } ]
+            
+        elif isinstance(data, list):
+        
+            proc_prompts = prompts 
+
+        return self._post_response(proc_prompts)
+
+
+    def get_response(self, prompt, dryrun=False):
 
         """
         Send a request to the Claude API and get a response.
@@ -73,6 +100,7 @@ class ClaudeBot:
         Args:
             prompt (str): The input prompt to send to the API.
             images (list, optional): A list of base64-encoded images to include in the request.
+            dryrun (bool):    just store message or actually send it
 
         Returns:
             str: The text content of the API response, or None if an error occurred.
@@ -80,7 +108,14 @@ class ClaudeBot:
 
         self.add_message("user", prompt)
         windowed_messages = self.messages[-self.window_size:]
-        
+
+        if dryrun:
+            return False
+
+        return self._post_response(windowed_messages)
+       
+    def _post_response(self, windowed_messages):
+
         data = {
             "model": MODEL,
             "max_tokens": MAX_TOKENS,
@@ -88,16 +123,57 @@ class ClaudeBot:
             "system": self.system_message
         }
 
-        if images:
-            data["files"] = images
+        if SHERLOCK_DEBUG:
+            logger.info(f"request: {data}")
 
-        response = requests.post(API_URL, headers=self.headers, json=data)
+        for retry in range(3):
+
+            response = requests.post(API_URL, headers=self.headers, json=data)
+
+            if 'SHERLOCK_DEBUG' in os.environ:
+                logger.info(f"response: {response.json()}")
         
-        if response.status_code == 200:
-            content = response.json()['content'][0]['text']
-            self.add_message("assistant", content)
-            return content
-        else:
-            logger.error(f"Error: {response.status_code}")
-            logger.error(response.text)
-            return None
+            if response.status_code == 200:
+                content = response.json()['content'][0]['text']
+                self.add_message("assistant", content)
+                return content
+            else:
+                logger.error(f"Error: {response.status_code}")
+                logger.error(response.text)
+
+                import pdb
+                pdb.set_trace()
+
+                time.sleep(5)
+
+            logger.info("retrying...")
+
+        raise Exception("The system is not available")
+
+    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3):
+
+        for attempt in range(max_retries):
+            response = self.get_simple_response(text)
+            try:
+
+                eval_result = eval_func(response)
+
+                if not eval_result:
+                    pass
+
+                result = process_func(response)
+
+                if result is not None:
+                    return result
+
+                else:
+                    pass
+
+            except ValueError:
+                pass
+
+            if attempt < max_retries - 1:
+                time.sleep(1)  # Wait for 1 second before retrying
+
+        raise ValueError(f"Failed to get a valid response after {max_retries} attempts")
+

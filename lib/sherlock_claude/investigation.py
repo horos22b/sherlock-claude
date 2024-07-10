@@ -8,7 +8,7 @@ clue provision, analysis, and final evaluation.
 
 from sherlock_claude.referee import Referee
 from sherlock_claude.investigator import Investigator
-from sherlock_claude.utils import logger
+from sherlock_claude.utils import logger, debug_print
 
 import json
 
@@ -37,6 +37,7 @@ class Investigation:
         self.referee = Referee(case_directory)
         self.investigator = Investigator(case_directory)
         self.max_iterations = 100
+        self._investigation_complete = False
 
     def run(self):
 
@@ -47,6 +48,10 @@ class Investigation:
         iterations until the case is solved or the maximum number of iterations
         is reached.
         """
+
+        import pdb
+        pdb.set_trace()
+
         for iteration in range(self.max_iterations):
             logger.info(f"Investigation iteration {iteration + 1}")
             
@@ -54,9 +59,9 @@ class Investigation:
             
             if self._is_investigation_complete(iteration):
                 self._evaluate_investigation()
-                break
-        else:
-            logger.info("Maximum iterations reached. The case remains unsolved.")
+
+        logger.info("Maximum iterations reached. returning evaluating now\n") 
+        self._evaluate_investigation()
 
     def _conduct_investigation_iteration(self):
 
@@ -66,33 +71,33 @@ class Investigation:
         This method manages the interaction between the Investigator and Referee
         for one round of analysis and clue provision.
         """
+
         investigator_response = self.investigator.analyze_case()
-        logger.info(f"Investigator: {investigator_response}")
         
         # Get the best clue from the referee based on the investigator's response
 
-        if "review the newspapers" in investigator_response.lower():
+        choice = self.referee.best_choice(investigator_response)
 
-            if not self.investigator.case_information['newspapers']:
-                newspapers = self.referee.provide_newspapers()
-                logger.info("Referee: Providing all newspaper articles.")
-                investigator_analysis = self.investigator.process_newspapers(newspapers)
-                logger.info(f"Investigator's newspaper analysis: {investigator_analysis}")
-            else:
-                logger.info("Referee: Newspapers have already been provided.")
-                self.investigator.get_response("You have already reviewed the newspapers. Please consider the information you've gathered and decide on your next action.")
+        if "newspapers" in choice:
+            newspapers = self.referee.provide_newspapers()
+            investigator_analysis = self.investigator.process_newspapers(newspapers)
+#           debug_print("Investigator", f"Newspaper analysis:\n{investigator_analysis}")
+        elif "solution" in choice:
+            self._investigation_complete = True
+
         else:
 
+            import pdb
+            pdb.set_trace()
+
             referee_response = self.referee.provide_best_clue(investigator_response)
-            logger.info(f"Referee: {referee_response}")
+#           debug_print("Referee", f"Providing clue:\n  description: {referee_response['description']}\n  location: {referee_response['location']}\n  type: {referee_response['type']}")
         
             # Process the clue received from the referee
-            self._process_clue(referee_response)
+            self._process_clue(investigator_response, referee_response)
         
-            # Get the investigator's response to the referee's clue
-            self.investigator.get_response(f"The referee said: {referee_response}\nBased on this information, what are your next thoughts or actions?")
 
-    def _process_clue(self, referee_response):
+    def _process_clue(self, investigator_response, referee_response):
 
         """
         Process the clue provided by the Referee.
@@ -101,14 +106,11 @@ class Investigation:
         and passes it to the Investigator for processing.
 
         Args:
+            investigator_response (str): The investigator_response that prompted the clue's returning
             referee_response (str): The response from the Referee containing a clue.
         """
 
-        # Find the clue that matches the referee's response and process it
-        for clue in self.referee.clues:
-            if clue['location'] in referee_response:
-                self.investigator.process_clue(clue)
-                break
+        self.investigator.process_clue(investigator_response, referee_response)
 
     def _is_investigation_complete(self, iteration):
 
@@ -124,10 +126,12 @@ class Investigation:
         Returns:
             bool: True if the investigation is complete, False otherwise.
         """
-        investigator_response = self.investigator.analyze_case()
 
-        # Check if the investigator is ready to answer or if we've reached the max iterations
-        return "ready to answer" in investigator_response.lower() or iteration == self.max_iterations - 1
+        if self._investigation_complete:
+            return  True
+
+        if iteration == self.max_iterations - 1:
+            return True
 
     def _evaluate_investigation(self):
 
@@ -145,7 +149,6 @@ class Investigation:
         # Evaluate the investigator's answers
         if investigator_answers:
             evaluation = self.referee.evaluate_answer(investigator_answers)
-            logger.info(f"Referee's Evaluation: {evaluation}")
             
             # Log the evaluation results
             self._log_evaluation_results(evaluation)
@@ -171,13 +174,28 @@ class Investigation:
             total_score = eval_dict['total_score']
             max_possible_score = sum(question['points'] for question in self.referee.questions)
             logger.info(f"Total Score: {total_score}/{max_possible_score}")
+
+            fh = open("investigation_results.txt", "w")
             
             # Log individual question evaluations
             for result in eval_dict['individual_evaluations']:
+
                 logger.info(f"Question: {result['question']}")
                 logger.info(f"Evaluation: {result['evaluation']}")
                 logger.info(f"Score: {result['score']}/{result['points']}")
                 logger.info("---")
 
+                f.write(f"Question: {result['question']}")
+                f.write(f"Evaluation: {result['evaluation']}")
+                f.write(f"Score: {result['score']}/{result['points']}")
+                f.write("---")
+
+            final_theory = self.investigator.get_response("Please provide your final theory of the case based on all the evidence you've gathered.")
+        
+            f.write(f"Investigator's Final Theory:\n{final_theory}\n\n")
+            f.write(f"Actual Solution:\n{self.referee.solution_data['description']}\n\n")
+            f.write(f"Total Score: {total_score}/{sum(q['points'] for q in self.referee.questions)}")
+
         except json.JSONDecodeError:
+
             logger.error("Failed to parse evaluation results")

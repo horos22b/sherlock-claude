@@ -8,9 +8,12 @@ with embedded image tags.
 import logging
 import json
 import re
+import regex
 import base64
 import os
 import inspect
+import glob
+
 from sherlock_claude.config import SHERLOCK_LITE_DEBUG
 
 base64_image_pattern = re.compile(r'(?:iV)[A-Za-z0-9+/=]{40,}')
@@ -18,6 +21,147 @@ base64_image_pattern = re.compile(r'(?:iV)[A-Za-z0-9+/=]{40,}')
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def _std_string(_data):
+
+    if isinstance(_data, str):
+        _to_write = _data
+
+    elif isinstance(_data, dict):
+        _to_write = _data['messages'][0]['content']
+
+    return _to_write
+
+
+def fix_json(_text):
+
+    def no_newline(cmd):
+        return regex.sub(r'\n', ' ', cmd)
+
+    # Complex regex replacement
+    def replace_func(match):
+
+        groups = match.groups()
+        return f'{groups[0]}"{groups[1]}"{groups[2]}{groups[3]}{groups[4]}"{no_newline(groups[5])}"{groups[6]}'
+
+    # Remove all double quotes
+    _text = _text.replace('"', '')
+
+
+    _text = _text.replace('\\', '')
+
+    # Remove commas that are immediately followed by non-whitespace
+    _text = regex.sub(r'(.),([^\n])', r'\1\2', _text)
+
+    import pdb
+    pdb.set_trace()
+
+    _text = regex.sub(r'(\s*)(\S+)(\s*)(:)(\s*)(.*?)(,\s*\n|\n})', replace_func, _text, flags=re.DOTALL)
+
+    return _text
+
+
+def write_logmode(logmode, req, response):
+
+    _req      = _std_string(req)
+    _response = _std_string(response)
+
+    filemode_in = put_latest_file(logmode, "referee", _req )
+
+    logger.info(f"put latest info into {filemode_in}")
+
+    put_latest_file( logmode, "investigator", _response )
+
+
+def write_filemode(filemode, data):
+
+    _to_write = _std_string(data)
+
+    _infile = put_latest_file(filemode, "referee", _to_write)
+
+    logger.info(f"put latest info into {_infile}")
+
+    ready = input(f"ready to read from claude. Press <return> to continue: ")
+
+    # special for mac, anthropic puts the files here.
+    _fname = get_latest_file(f"{os.environ['HOME']}/Downloads/")
+
+    copy_latest_file(filemode, "investigator", _fname)
+        
+    return gettext(_fname)
+
+def copy_latest_file(directory, prefix, fname):
+
+    # Ensure the directory exists
+    os.makedirs(directory, exist_ok=True)
+    
+    # Get list of existing files with the given prefix
+    existing_files = [f for f in os.listdir(directory) if f.startswith(prefix)]
+    
+    # Determine the next number
+    if existing_files:
+        numbers = [int(f.split('_')[1].split('.')[0]) for f in existing_files]
+        next_number = max(numbers) + 1
+    else:
+        next_number = 1
+    
+    # Create the new filename
+    new_filename = f"{prefix}_{next_number:04d}.txt"
+    full_path = os.path.join(directory, new_filename)
+    
+    os.system(f"cp -f '{fname}' {full_path}")
+
+
+def get_latest_file(directory):
+
+    list_of_files = glob.glob(os.path.join(directory, '*'))
+    if not list_of_files:
+        return None
+    latest_file = max(list_of_files, key=os.path.getctime)
+    return latest_file
+
+import os
+
+def put_latest_file(directory, prefix, content, prettify=False):
+
+    # Ensure the directory exists
+    os.makedirs(directory, exist_ok=True)
+    
+    # Get list of existing files with the given prefix
+    existing_files = [f for f in os.listdir(directory) if f.startswith(prefix)]
+    
+    # Determine the next number
+    if existing_files:
+        numbers = [int(f.split('_')[1].split('.')[0]) for f in existing_files]
+        next_number = max(numbers) + 1
+    else:
+        next_number = 1
+    
+    # Create the new filename
+    new_filename = f"{prefix}_{next_number:04d}.txt"
+    full_path = os.path.join(directory, new_filename)
+    
+    # Write the content to the new file
+    with open(full_path, 'w') as file:
+        if prettify:
+            if isinstance(content, str):
+                file.write(f"{content}")
+            else:
+                file.write(prettify_json(json.dumps(content, indent=2, ensure_ascii=True)))
+        else:
+            file.write(f"{content}")
+
+    return full_path
+
+def puttext(file, _str):
+
+    with open(file, 'w') as f:
+        f.write(_str)
+
+
+def gettext(file):
+
+    return open(file, "r").read()
 
 def replace_quote_newlines(text):
 
@@ -52,7 +196,7 @@ def eval_score(response):
         return False
 
     dat = ret_json(response, 'score')
-    score = dat['score']
+    score = int(dat['score'])
 
     if score is not None and 0 <= score <= 100:
         return True
@@ -64,7 +208,7 @@ def eval_confidence(response):
         return False
 
     dat = ret_json(response, 'confidence')
-    score = dat['confidence']
+    score = int(dat['confidence'])
 
     if score is not None and 0 <= score <= 100:
         return True
@@ -74,14 +218,14 @@ def eval_confidence(response):
 
 def eval_json(json_string, key):
 
-    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL)
+    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, flags=re.DOTALL)
 
     if not json_string:
         return False
 
     try:
         _json = json_string.group(1)
-        _json = replace_quote_newlines(_json)
+        _json = fix_json(_json)
 
         json.loads(_json)
 
@@ -92,7 +236,7 @@ def eval_json(json_string, key):
 def ret_json(json_string, key):
 
     json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
-    json_string = replace_quote_newlines(json_string)
+    json_string = fix_json(json_string)
 
     return json.loads(json_string)
 
@@ -196,12 +340,17 @@ def debug_print(role, message):
     if SHERLOCK_LITE_DEBUG:
         # Get the caller's information
         current_frame = inspect.currentframe()
-        caller_frame = current_frame.f_back
-        caller_info = inspect.getframeinfo(caller_frame)
+        excluded_files = [ 'utils.py' ]  # Add files to exclude
+        
+        while current_frame:
+            frame_info = inspect.getframeinfo(current_frame)
+            file_name = os.path.basename(frame_info.filename)
+            if file_name not in excluded_files:
+                break
+            current_frame = current_frame.f_back
         
         # Extract the short file name and line number
-        file_name = os.path.basename(caller_info.filename)
-        line_number = caller_info.lineno
+        line_number = frame_info.lineno
         
         # Create the location string
         location = f"{file_name}:{line_number}"

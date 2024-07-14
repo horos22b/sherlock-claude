@@ -24,6 +24,12 @@ setup_exception_handler()
 # Load environment variables from .env file
 load_dotenv()
 
+SHERLOCK_LOGMODE=os.getenv("SHERLOCK_LOGMODE")
+"""str: log steps to sherlock_logmode directory"""
+
+SHERLOCK_FILEMODE=os.getenv("SHERLOCK_FILEMODE")
+"""str: interact with claude via the sherlock_filemode directory"""
+
 SHERLOCK_DEBUG = os.getenv("SHERLOCK_DEBUG")
 """str: run in debug mode..."""
 

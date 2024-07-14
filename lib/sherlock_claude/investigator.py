@@ -8,7 +8,8 @@ theories based on the information provided.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
-from sherlock_claude.utils import debug_print, eval_json, ret_json
+from sherlock_claude.utils import debug_print, eval_json, ret_json, fix_json
+from sherlock_claude.config import SHERLOCK_FILEMODE, SHERLOCK_LOGMODE
 
 import json
 import re
@@ -38,6 +39,8 @@ class Investigator(ClaudeBot):
         system_message = "You are an investigator trying to solve a case. You will receive information about the case, including textual clues and visual evidence. You should formulate theories, ask questions, and try to solve the case. You can also request to review newspapers in bulk at any time."
         super().__init__("investigator", system_message)
         
+        self.latest_clue = ''
+
         self.setup, _, self.questions, _, _, self.informants, _ = CaseLoader.load_case(case_directory)
 
 #        import pdb
@@ -53,7 +56,7 @@ class Investigator(ClaudeBot):
         }
         
         initial_message = self._create_initial_message()
-        self.get_response(initial_message)
+        self.get_response(initial_message, dryrun=True)
 
     def _create_initial_message(self):
         """
@@ -75,7 +78,7 @@ You can request to review newspapers at any time by stating "I would like to rev
 
 Based on this information, what are your initial thoughts? Consider if any of the informants might be relevant to contact first, or if you'd like to review the newspapers."""
 
-    def analyze_case(self):
+    def analyze_case(self, _iter=False):
         """
         Analyze the current state of the case and formulate next steps.
     
@@ -90,9 +93,21 @@ Based on this information, what are your initial thoughts? Consider if any of th
         prompt  = self._create_analysis_prompt()
         prompt += self._create_pick_prompt()
 
-        debug_print("Investigator", f"inital prompt: {prompt}")
-        response = self.get_retry_simple_response(prompt)
-        debug_print("Investigator", f"intiall response: {response}")
+        if SHERLOCK_FILEMODE and _iter and _iter > 0:
+
+            next_clue = self.get_latest_clue()
+            debug_print("Investigator", f"next clue: {next_clue}")
+
+            prompt = "\n-----\nnext clue\n----\n{next_clue}\n"
+            prompt += self._create_pick_prompt()
+
+            response = self.get_retry_simple_response(prompt,filemode=SHERLOCK_FILEMODE)
+
+        else:
+            debug_print("Investigator", f"inital prompt: {prompt}")
+            response = self.get_retry_simple_response(prompt,filemode=SHERLOCK_FILEMODE, logmode=SHERLOCK_LOGMODE)
+
+        debug_print("Investigator", f"initial response: {response}")
 
         return(response)
 
@@ -112,9 +127,16 @@ Based on this information, what are your initial thoughts? Consider if any of th
         prompt  = self._create_analysis_prompt()
         prompt += self._create_final_theory_prompt()
 
-        debug_print("Investigator", f"final theory prompt: {prompt}")
-        response = self.get_retry_simple_response(prompt)
-        debug_print("Investigator", f"final theory response: {response}")
+        if SHERLOCK_FILEMODE:
+            debug_print("Investigator", f"final theory prompt: {prompt}")
+            prompt = self._create_final_theory_prompt()
+            response = self.get_retry_simple_response(prompt,filemode=SHERLOCK_FILEMODE)
+            debug_print("Investigator", f"final theory response: {response}")
+
+        else:
+            debug_print("Investigator", f"final theory prompt: {prompt}")
+            response = self.get_retry_simple_response(prompt,filemode,logmode=SHERLOCK_LOGMODE)
+            debug_print("Investigator", f"final theory response: {response}")
 
         return(response)
     
@@ -220,6 +242,7 @@ description:    {referee_response['description']}")
 """
 
         self.case_information['clues'].append(clue)
+        self.latest_clue = clue
 
         debug_print("Investigator", f"clue path: {json.dumps(self.case_information['clue_path'])}")
         debug_print("Investigator", f"next clue: {self.case_information['clues'][-1]}")
@@ -245,10 +268,15 @@ description:    {referee_response['description']}")
 
         def eval_json(json_string, key):
 
-            json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
+            json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL)
+
+            if not json_string:
+                return False
 
             try:
-                json.loads(json_string)
+                _json = fix_json(json_string.group(1))
+                json.loads(_json)
+
                 return True
             except json.JSONDecodeError:
                 return False
@@ -256,7 +284,9 @@ description:    {referee_response['description']}")
         def ret_json(json_string, key):
 
             json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
-            return json.loads(json_string)
+            _json = fix_json(json_string)
+
+            return json.loads(_json)
 
         self.case_information['newspapers'] = newspapers
         newspapers_json = json.dumps(newspapers, indent=2)
@@ -292,11 +322,22 @@ NEWSPAPER DATA BELOW
 
         init_prompt = self._create_analysis_prompt()
 
-        response = self.get_retry_simple_response(init_prompt + prompt, lambda x: eval_json(x, 'description'), lambda x: ret_json(x, 'description'))
+        if SHERLOCK_FILEMODE:
+            response = self.get_retry_simple_response(prompt, lambda x: eval_json(x, 'description'), lambda x: ret_json(x, 'description'), filemode=SHERLOCK_FILEMODE)
+        else:
+            response = self.get_retry_simple_response(init_prompt + prompt, lambda x: eval_json(x, 'description'), lambda x: ret_json(x, 'description'), logmode=SHERLOCK_LOGMODE)
+
+
 
         debug_print("Investigator", f"found the following clues in the newspaper: {response}")
 
         self.case_information['newspaper_clues'].append(response)
+
+        self.latest_clue = response
+
+    def get_latest_clue(self):
+
+        return self.latest_clue
 
     def answer_questions(self):
 
@@ -317,11 +358,12 @@ NEWSPAPER DATA BELOW
 
 
         for question in questions:
-            prompt = f"""Based on all the evidence you've gathered during the investigation, please answer the following question for {question['points']}:
+            prompt = f"""Based on all the evidence you've gathered during the investigation, please answer the following question for {question['points']} points:
 
 {question['question']}
 
-Provide your answer and your confidence level.
+Provide your answer and your confidence level. Please limit your answer to the following question and the following question alone.
+
 Format your response as a JSON object with the following structure, where <question> indicates the questions you are going to be answering, <your_answer> indicates the answer you are giving, and <confidence_level> is how confident you are of an answer in the form of a number between 0 and 100:
 {{
     "question": "<question>",
@@ -331,7 +373,11 @@ Format your response as a JSON object with the following structure, where <quest
 """
             investigation_prompt  = self._create_analysis_prompt()
 
-            response = self.get_retry_simple_response( investigation_prompt + prompt, lambda x: eval_json(x, 'question'), lambda x: ret_json(x, 'question'))
+            if SHERLOCK_FILEMODE:
+                response = self.get_retry_simple_response( prompt, lambda x: eval_json(x, 'question'), lambda x: ret_json(x, 'question'), filemode=SHERLOCK_FILEMODE)
+            else:
+                response = self.get_retry_simple_response( investigation_prompt + prompt, lambda x: eval_json(x, 'question'), lambda x: ret_json(x, 'question'), logmode=SHERLOCK_LOGMODE)
+
             debug_print("Investigator", f"Question: {question['question']}\nResponse: {response}")
             answers.append(response)
             

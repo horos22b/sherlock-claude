@@ -37,7 +37,7 @@ class Investigation:
         """
         self.referee = Referee(case_directory)
         self.investigator = Investigator(case_directory)
-        self.max_iterations = 2
+        self.max_iterations = 50
         self._investigation_complete = False
 
     def run(self):
@@ -54,7 +54,7 @@ class Investigation:
         for iteration in range(self.max_iterations):
             logger.info(f"Investigation iteration {iteration + 1}")
             
-            self._conduct_investigation_iteration()
+            self._conduct_investigation_iteration(iteration)
             
             if self._is_investigation_complete(iteration):
                 self._evaluate_investigation()
@@ -64,7 +64,7 @@ class Investigation:
         self._evaluate_investigation()
         sys.exit(0)
 
-    def _conduct_investigation_iteration(self):
+    def _conduct_investigation_iteration(self, _iter):
 
         """
         Conduct a single iteration of the investigation process.
@@ -73,7 +73,7 @@ class Investigation:
         for one round of analysis and clue provision.
         """
 
-        investigator_response = self.investigator.analyze_case()
+        investigator_response = self.investigator.analyze_case(_iter=_iter)
         
         # Get the best clue from the referee based on the investigator's response
 
@@ -146,9 +146,6 @@ class Investigation:
         investigator_answers = self.investigator.answer_questions()
 
         # Evaluate the investigator's answers
-
-#        import pdb
-#        pdb.set_trace()
 
         evaluation = self.referee.evaluate_answer(investigator_answers)
             

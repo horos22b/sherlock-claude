@@ -10,7 +10,7 @@ import time
 import requests
 import json
 from sherlock_claude.config import API_KEY, API_URL, MODEL, MAX_TOKENS, ANTHROPIC_VERSION, SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
-from sherlock_claude.utils import logger, debug_print
+from sherlock_claude.utils import logger, debug_print, gettext, puttext, write_logmode, write_filemode
 
 class ClaudeBot:
 
@@ -63,7 +63,7 @@ class ClaudeBot:
 
         self.messages.append({"role": role, "content": content})
 
-    def get_simple_response(self, prompts):
+    def get_simple_response(self, prompts, filemode=None,logmode=None):
 
         """
         Send a simple request to the Claude API and get a response.
@@ -85,7 +85,7 @@ class ClaudeBot:
         
             proc_prompts = [ { 'role': 'user', 'content' : _ } for _ in prompts ]
 
-        return self._post_response(proc_prompts)
+        return self._post_response(proc_prompts,filemode=filemode,logmode=logmode)
 
 
     def get_response(self, prompt, dryrun=False):
@@ -114,7 +114,7 @@ class ClaudeBot:
 
         return self._post_response(windowed_messages)
        
-    def _post_response(self, windowed_messages):
+    def _post_response(self, windowed_messages,filemode=False,logmode=False):
 
         data = {
             "model": MODEL,
@@ -126,6 +126,9 @@ class ClaudeBot:
         if SHERLOCK_DEBUG:
             logger.info(f"request: {data}")
 
+        if filemode:
+            return write_filemode(filemode, data)
+
         for retry in range(3):
 
             response = requests.post(API_URL, headers=self.headers, json=data)
@@ -136,13 +139,15 @@ class ClaudeBot:
             if response.status_code == 200:
                 content = response.json()['content'][0]['text']
                 self.add_message("assistant", content)
+
+                if logmode:
+                    write_logmode(logmode, data, content)
+
                 return content
+
             else:
                 logger.error(f"Error: {response.status_code}")
                 logger.error(response.text)
-
-#                import pdb
-#                pdb.set_trace()
 
                 time.sleep(5)
 
@@ -150,7 +155,7 @@ class ClaudeBot:
 
         raise Exception("The system is not available")
 
-    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3, print_eval=False):
+    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3, print_eval=False,filemode=False,logmode=False):
 
         """
         Send a request to the Claude API with retry functionality and custom evaluation.
@@ -175,7 +180,7 @@ class ClaudeBot:
 
         for attempt in range(max_retries):
 
-            response = self.get_simple_response(text)
+            response = self.get_simple_response(text,filemode=filemode,logmode=logmode)
 
             if print_eval:
                 debug_print(print_eval, f"evaled response: {response}")
@@ -185,10 +190,11 @@ class ClaudeBot:
                 eval_result = eval_func(response)
 
                 if not eval_result:
-                    logger.warning(f"retrying {response}")
 
-#                   import pdb
-#                   pdb.set_trace()
+                    import pdb
+                    pdb.set_trace()
+
+                    logger.warning(f"retrying {response}")
 
                     eval_func(response)
                     time.sleep(5)  # Wait for 5 seconds before retrying

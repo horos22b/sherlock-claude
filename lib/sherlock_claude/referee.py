@@ -8,8 +8,8 @@ selecting and presenting relevant clues.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
-from sherlock_claude.utils import logger, debug_print, eval_json, ret_json, eval_score, eval_confidence
-from sherlock_claude.config import SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
+from sherlock_claude.utils import logger, debug_print, eval_json, ret_json, eval_score, eval_confidence, put_latest_file
+from sherlock_claude.config import SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG, SHERLOCK_LOGMODE, SHERLOCK_FILEMODE
 
 import json
 import re
@@ -198,7 +198,7 @@ Format the final part of the response as a JSON object with the following struct
             debug_print("Referee", f"Evaluating next action\n{text}")
 
             response =  self.get_retry_simple_response(text, eval_score, lambda x: ret_json(x, 'score'), print_eval="Referee")
-            ans[next_action] = response['score']
+            ans[next_action] = int(response['score'])
 
         _max_act = 0
         for key in ans:
@@ -263,7 +263,16 @@ Format the final part of the response as a JSON object with the following struct
                            f"\n-------\nHere's what you find:\n--------\n\n{best_clue['description']}"
                 
                 debug_print("Referee", f"Providing best clue:\n{response}")
+                _ret = { 'type': _type, 'location' : _location, 'description' : response }
+
+                if SHERLOCK_LOGMODE or SHERLOCK_FILEMODE:
+
+                    put_latest_file(SHERLOCK_LOGMODE or SHERLOCK_FILEMODE, "clue", _ret, prettify=True )
+                
                 return { 'type': _type, 'location': _location, 'description' : response }
+
+            else:
+                logger.warning(f"duplicate clue: {clue['index']} - {self.returned_clues}")
 
         debug_print("Referee", f"think of a different way around the case. You have already seen the most relevant clues here.")
 
@@ -284,9 +293,6 @@ Format the final part of the response as a JSON object with the following struct
             str: A JSON string containing the evaluation results and total score.
         """
 
-#        import pdb
-#        pdb.set_trace()
-
         total_score = 0
         evaluation_results = []
 
@@ -302,7 +308,7 @@ Format the final part of the response as a JSON object with the following struct
             result['question'] = question['question']
             result['points'] = question['points']
                 
-            result['score'] = (result['confidence'] / 100) * question['points']
+            result['score'] = (int(result['confidence']) / 100) * question['points']
                 
             evaluation_results.append(result)
             total_score += result['score']

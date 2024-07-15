@@ -201,9 +201,13 @@ Based on all this information, what are your current thoughts on the case?
 
 Where would you like to investigate next? 
 
-Consider the clues you've received, the informants you know about, and the option to review newspapers (if you haven't already). If you think an informant might be relevant, explicitly mention their name in your response. If you want to review the newspapers and haven't done so yet, state "I would like to review the newspapers."
+Consider the clues you've received, the informants you know about, and the option to review newspapers (if you haven't already). If you think an informant might be relevant, explicitly mention their name in your response. If you want to review the newspapers, state "I would like to review the newspapers." When deciding whether or not to retain a clue from the newspapers, please review the current newspaper clues that you have and only decide to catalog new clues.
 
-Remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
+Also remember that you are playing a GAME. The solution of the puzzle in the game is bounded by the information present in the clues OF the game. Therefore it is likely that the solution will be something that makes sense to integrate disparate parts of clues that you find. Making suppositions which aren't supported by what you have found is likely to be incorrect, the suspects in the case for example are bounded to person or persons that are in the story itself.
+
+Likewise the solution is likely to feel complete, to drive a narrative based off of the clues that you see. When there are multiple possible options, the likely solution is due to some specific forensic detail that only matches a certain theory. Comparing and contrasting different theories should start by trying to reconcile those theories with corroborating evidence, namely evidence showing means, motive and opportunity, or physical evidence pointing to a specific theory.
+
+Also, remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
 """
 
     def _create_explanation_prompt(self):

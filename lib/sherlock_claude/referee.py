@@ -40,8 +40,8 @@ class Referee(ClaudeBot):
         Args:
             case_directory (str): The directory containing the case files.
         """
-        system_message = "You are a referee in a detective case. You know all the details of the case and will guide an investigator by providing relevant clues and newspaper information based on their current thoughts and questions."
-        super().__init__("referee", system_message)
+        system_message = "You are a referee in a detective case. You know all the details of the case and will guide an investigator by providing relevant clues and newspaper information based on their current thoughts and questions.  You will also provide information about images when requested."
+        super().__init__("referee", system_message, case_directory)
         
         self.setup, self.clues, self.questions, self.answers, self.solution_data, self.informants, self.newspapers = CaseLoader.load_case(case_directory)
         self.returned_clues = set()
@@ -68,6 +68,10 @@ Questions to solve: {json.dumps(self.questions, indent=2)}
 Case Solution: {json.dumps(self.solution_data, indent=2)}
 
 Informants: {json.dumps(self.informants, indent=2)}
+
+Image Index: {json.dumps(self.setup.get('image_index', {}), indent=2)}
+
+Note: Images are referenced as [IMAGE:X] where X is the image index. You can provide image information when the investigator asks about a specific image index.
         """
 
     def rank_single_clue(self, investigator_statement, clue, index):
@@ -246,8 +250,19 @@ Format the final part of the response as a JSON object with the following struct
             return "Cannot find a relevant clue here, please think and try again."
         
         sorted_clues = sorted(ranked_clues, key=lambda x: x['score'], reverse=True)
+
+        _idx = 0
         
         for clue in sorted_clues:
+
+            if _idx > 3:
+                break
+
+            if 'index' not in clue:
+
+                import pdb
+                pdb.set_trace()
+
             if clue['index'] not in self.returned_clues:
                 self.returned_clues.add(clue['index'])
                 best_clue = self.clues[clue['index']]
@@ -255,28 +270,38 @@ Format the final part of the response as a JSON object with the following struct
                 if 'location' in best_clue:
                     _location = best_clue['location']
                     _type = 'location'
-                else:
+
+                elif 'informant' in best_clue:
                     _location = best_clue['informant']
                     _type = 'informant'
-   
+
                 response = f"\n-------\nBased on your current line of inquiry, you investigate {_location}. "\
-                           f"\n-------\nHere's what you find:\n--------\n\n{best_clue['description']}"
-                
+                           f"\n-------\nHere's what you find:\n--------\n\n{best_clue['description']}\n"\
+                           f"If there are any [IMAGE:X] references, you can ask for more details about the image by mentioning its index."
+
+                response += f"\n\nRelevance: {clue['explanation']}"
+
                 debug_print("Referee", f"Providing best clue:\n{response}")
+
                 _ret = { 'type': _type, 'location' : _location, 'description' : response }
 
                 if SHERLOCK_LOGMODE or SHERLOCK_FILEMODE:
-
                     put_latest_file(SHERLOCK_LOGMODE or SHERLOCK_FILEMODE, "clue", _ret, prettify=True )
-                
-                return { 'type': _type, 'location': _location, 'description' : response }
+
+                return _ret 
 
             else:
+
                 logger.warning(f"duplicate clue: {clue['index']} - {self.returned_clues}")
 
         debug_print("Referee", f"think of a different way around the case. You have already seen the most relevant clues here.")
 
-        return { 'type': 'dead_end', 'location':  'none', 'description':  "Think of a different way around the case. You have already seen the most relevant clues here." }
+        _ret = { 'type': 'dead_end', 'location':  'none', 'description':  "Think of a different way around the case. You have already seen the most relevant clues here." }
+
+        if SHERLOCK_LOGMODE or SHERLOCK_FILEMODE:
+            put_latest_file(SHERLOCK_LOGMODE or SHERLOCK_FILEMODE, "clue", _ret, prettify=True )
+
+        return _ret
 
     def evaluate_answer(self, investigator_answers):
 
@@ -452,3 +477,15 @@ Format your response as a JSON object with the following structure:
         debug_print("Referee", f"Asking for final solution:\n{referee_prompt}")
 
         return referee_prompt
+
+    def get_image_info(self, index):
+        """
+        Get information about a specific image by its index.
+
+        Args:
+            index (int): The index of the image.
+
+        Returns:
+            str: Formatted string containing image metadata.
+        """
+        return super().get_image_info(index)

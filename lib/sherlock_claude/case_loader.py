@@ -5,7 +5,9 @@ The CaseLoader is responsible for reading various JSON files that define a case,
 including setup, clues, questions, answers, solution, informants, and newspapers.
 """
 
-from sherlock_claude.utils import load_json, process_content
+from sherlock_claude.utils import load_json
+from sherlock_claude.image_processor import ImageProcessor
+
 import os
 
 class CaseLoaderError(Exception):
@@ -90,14 +92,20 @@ class CaseLoader:
             informants = CaseLoader.load_json_file(case_directory, 'informants.json')
             newspapers = CaseLoader.load_json_file(case_directory, 'newspapers.json')
 
-            # Process content to replace image tags with base64-encoded image data
-            setup['description'] = process_content(setup['description'], case_directory)
+            # Process content to replace image tags with indexed references
 
-            # Process content to replace image tags with base64-encoded image data
+            image_processor = ImageProcessor()
+            image_processor.set_case_directory(case_directory)
+            
+            setup['description'] = image_processor.process_content(setup['description'])
+            
             for clue in clues:
-                clue['description'] = process_content(clue['description'], case_directory)
-
-            newspapers['description'] = process_content(newspapers['description'], case_directory)
+                clue['description'] = image_processor.process_content(clue['description'])
+            
+            newspapers['description'] = image_processor.process_content(newspapers['description'])
+            
+            # Add the full image index to the setup
+            setup['image_index'] = image_processor.get_full_image_index()
 
         except CaseLoaderError as e:
             raise  # Re-raise the CaseLoaderError
@@ -113,3 +121,4 @@ class CaseLoader:
             informants,
             newspapers
         )
+

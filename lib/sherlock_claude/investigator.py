@@ -210,6 +210,8 @@ Remember to keep the initial setup and questions in mind as you formulate your t
 
         return """
 Please consider the evidence so far and formulate your theories. What do you think is going on? What are the motives behind the case? What is the supporting evidence you have for your theories? What is contradicting evidence that you have to consider? How confident are you in these findings? What are some alternate theories you need to track down?
+
+Also, please consider and give your best answer for the questions that were given.
 """
 
 

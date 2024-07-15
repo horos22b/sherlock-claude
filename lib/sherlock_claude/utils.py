@@ -13,6 +13,7 @@ import base64
 import os
 import inspect
 import glob
+from PIL import Image
 
 from sherlock_claude.config import SHERLOCK_LITE_DEBUG
 
@@ -51,11 +52,8 @@ def fix_json(_text):
     _text = _text.replace('\\', '')
 
     # Remove commas that are immediately followed by non-whitespace
+
     _text = regex.sub(r'(.),([^\n])', r'\1\2', _text)
-
-    import pdb
-    pdb.set_trace()
-
     _text = regex.sub(r'(\s*)(\S+)(\s*)(:)(\s*)(.*?)(,\s*\n|\n})', replace_func, _text, flags=re.DOTALL)
 
     return _text
@@ -285,19 +283,18 @@ def load_image(file_path):
 def process_content(content, case_directory):
 
     """
-    Process content by replacing image tags with base64-encoded image data.
+    Process content by replacing image tags with image metadata.
 
     This function searches for image tags in the format <<image_name>> and replaces
-    them with the corresponding base64-encoded image data.
+    them with the corresponding image metadata.
 
     Args:
         content (str): The content containing image tags.
         case_directory (str): The directory containing the image files.
 
     Returns:
-        str: The processed content with image tags replaced by base64-encoded image data.
+        str: The processed content with image tags replaced by image metadata.
     """
-
     errors = []
 
     image_tags = re.findall(r'<<(.+?)>>', content)
@@ -313,8 +310,8 @@ def process_content(content, case_directory):
             logger.error(f"Image not found for tag: {tag}")
 
     if errors:
-        logger.error(f"raising errors")
-        raise BaseException("Issues with images\n");
+        logger.error("Issues with images")
+        raise BaseException("Issues with images\n")
 
     return content
 

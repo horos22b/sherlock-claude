@@ -5,12 +5,14 @@ The ClaudeBot class handles API communication, message management, and response 
 It serves as a foundation for more specialized AI agents in the investigation system.
 """
 
+import re
 import os
 import time
 import requests
 import json
 from sherlock_claude.config import API_KEY, API_URL, MODEL, MAX_TOKENS, ANTHROPIC_VERSION, SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
 from sherlock_claude.utils import logger, debug_print, gettext, puttext, write_logmode, write_filemode
+from sherlock_claude.image_processor import ImageProcessor
 
 class ClaudeBot:
 
@@ -30,7 +32,7 @@ class ClaudeBot:
 
     """
 
-    def __init__(self, role, system_message, window_size=1000):
+    def __init__(self, role, system_message, case_directory, window_size=1000):
 
         """
         Initialize a new ClaudeBot instance.
@@ -50,6 +52,8 @@ class ClaudeBot:
             "Content-Type": "application/json",
             "anthropic-version": ANTHROPIC_VERSION
         }
+        self.image_processor = ImageProcessor()
+        self.image_processor.set_case_directory(case_directory)
 
     def add_message(self, role, content):
 
@@ -119,7 +123,7 @@ class ClaudeBot:
         data = {
             "model": MODEL,
             "max_tokens": MAX_TOKENS,
-            "messages": windowed_messages,
+            "messages": self._prepare_messages_with_images(windowed_messages),
             "system": self.system_message
         }
 
@@ -133,7 +137,7 @@ class ClaudeBot:
 
             response = requests.post(API_URL, headers=self.headers, json=data)
 
-            if 'SHERLOCK_DEBUG' in os.environ:
+            if SHERLOCK_DEBUG:
                 logger.info(f"response: {response.json()}")
         
             if response.status_code == 200:
@@ -191,9 +195,6 @@ class ClaudeBot:
 
                 if not eval_result:
 
-                    import pdb
-                    pdb.set_trace()
-
                     logger.warning(f"retrying {response}")
 
                     eval_func(response)
@@ -218,3 +219,72 @@ class ClaudeBot:
 
         raise ValueError(f"Failed to get a valid response after {max_retries} attempts")
 
+    def process_case_content(self, content, case_directory):
+        """
+        Process the case content, handling image tags.
+
+        Args:
+            content (str): The case content with image tags.
+            case_directory (str): The directory containing case files and images.
+
+        Returns:
+            str: Processed content with image tags replaced by indexed references.
+        """
+        return self.image_processor.process_content(content, case_directory)
+
+    def get_image_info(self, index):
+        """
+        Get information about a specific image by its index.
+
+        Args:
+            index (int): The index of the image.
+
+        Returns:
+            str: Formatted string containing image metadata.
+        """
+        return self.image_processor.get_image_info(index)
+
+    def get_full_image_index(self):
+        """
+        Get the full image index.
+
+        Returns:
+            dict: The complete image index.
+        """
+        return self.image_processor.get_full_image_index()
+
+    def _prepare_messages_with_images(self, messages):
+        prepared_messages = []
+        for message in messages:
+            prepared_message = {
+                "role": message["role"],
+                "content": []
+            }
+            
+            # Split the content by image references
+            parts = re.split(r'(\[IMAGE:\d+\])', message["content"])
+            
+            for part in parts:
+                if part.startswith("[IMAGE:"):
+                    # Extract image index
+                    image_index = int(part[7:-1])
+                    image_data = self.image_processor.get_image_data(image_index)
+                    if image_data:
+                        prepared_message["content"].append({
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": image_data["media_type"],
+                                "data": image_data["data"]
+                            }
+                        })
+                else:
+                    if part.strip():
+                        prepared_message["content"].append({
+                            "type": "text",
+                            "text": part
+                        })
+            
+            prepared_messages.append(prepared_message)
+        
+        return prepared_messages

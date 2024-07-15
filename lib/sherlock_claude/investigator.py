@@ -8,7 +8,7 @@ theories based on the information provided.
 
 from sherlock_claude.claude_bot import ClaudeBot
 from sherlock_claude.case_loader import CaseLoader
-from sherlock_claude.utils import debug_print, eval_json, ret_json, fix_json
+from sherlock_claude.utils import debug_print, eval_json, ret_json, fix_json, put_latest_file
 from sherlock_claude.config import SHERLOCK_FILEMODE, SHERLOCK_LOGMODE
 
 import json
@@ -29,6 +29,7 @@ class Investigator(ClaudeBot):
     """
 
     def __init__(self, case_directory):
+        system_message = "You are an investigator trying to solve a case. You will receive information about the case, including textual clues and references to visual evidence. You should formulate theories, ask questions, and try to solve the case. You can also request to review newspapers in bulk at any time."
 
         """
         Initialize a new Investigator instance.
@@ -36,15 +37,11 @@ class Investigator(ClaudeBot):
         Args:
             case_directory (str): The directory containing the case files.
         """
-        system_message = "You are an investigator trying to solve a case. You will receive information about the case, including textual clues and visual evidence. You should formulate theories, ask questions, and try to solve the case. You can also request to review newspapers in bulk at any time."
-        super().__init__("investigator", system_message)
+        super().__init__("investigator", system_message, case_directory)
         
         self.latest_clue = ''
 
         self.setup, _, self.questions, _, _, self.informants, _ = CaseLoader.load_case(case_directory)
-
-#        import pdb
-#        pdb.set_trace()
 
         self.case_information = {
             "setup": self.setup,
@@ -76,6 +73,8 @@ You also have knowledge of these informants:
 
 You can request to review newspapers at any time by stating "I would like to review the newspapers."
 
+Image references are provided as [IMAGE:X] where X is the image index. You can ask for more information about a specific image by mentioning its index.
+
 Based on this information, what are your initial thoughts? Consider if any of the informants might be relevant to contact first, or if you'd like to review the newspapers."""
 
     def analyze_case(self, _iter=False):
@@ -91,6 +90,16 @@ Based on this information, what are your initial thoughts? Consider if any of th
             str: The investigator's analysis and proposed next steps.
         """
         prompt  = self._create_analysis_prompt()
+
+        if SHERLOCK_FILEMODE or SHERLOCK_LOGMODE:
+
+            explanation_prompt = prompt + self._create_explanation_prompt()
+
+            response = self.get_retry_simple_response(explanation_prompt,filemode=SHERLOCK_FILEMODE,logmode=SHERLOCK_LOGMODE)
+
+            put_latest_file(SHERLOCK_LOGMODE or SHERLOCK_FILEMODE, "analysis", response, prettify=True )
+
+
         prompt += self._create_pick_prompt()
 
         if SHERLOCK_FILEMODE and _iter and _iter > 0:
@@ -197,6 +206,13 @@ Consider the clues you've received, the informants you know about, and the optio
 Remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
 """
 
+    def _create_explanation_prompt(self):
+
+        return """
+Please consider the evidence so far and formulate your theories. What do you think is going on? What are the motives behind the case? What is the supporting evidence you have for your theories? What is contradicting evidence that you have to consider? How confident are you in these findings? What are some alternate theories you need to track down?
+"""
+
+
     def _create_pick_prompt(self):
 
         return """
@@ -240,6 +256,8 @@ location:       {referee_response['location']}
 location_type:  {referee_response['type']}
 description:    {referee_response['description']}")
 """
+        # If there are any [IMAGE:X] references in the clue, you can add:
+        # You can ask for more details about any image by mentioning its index.
 
         self.case_information['clues'].append(clue)
         self.latest_clue = clue

@@ -89,21 +89,12 @@ Note: Images are referenced as [IMAGE:X] where X is the image index. You can pro
         """
         prompt = self._create_ranking_prompt(investigator_statement, clue, index)
         
-        for _ in range(3):  # Try up to 3 times
+        debug_print("Referee", f"Looking at clue: {json.dumps(prompt)}")
+         
+        ranked_clue = self.get_retry_simple_response(prompt, eval_func=lambda x: eval_json(x, [ 'index', 'score', 'explanation']), process_func=lambda x: ret_json(x, [ 'index', 'score', 'explanation' ]) )
 
-            debug_print("Referee", f"Looking at clue: {json.dumps(prompt)}")
-
-            response = self.get_simple_response(prompt)
-
-            debug_print("Referee", f"Reponse to clue: {json.dumps(response)}")
-
-            try:
-                ranked_clue = json.loads(response)
-                return ranked_clue
-            except json.JSONDecodeError:
-                prompt += "\nPlease ensure your response is a valid JSON object."
-        
-        return {"index": index, "score": 0, "explanation": "Cannot compute"}
+        debug_print("Referee", f"Reponse to clue: {json.dumps(ranked_clue)}")
+        return ranked_clue
 
     def _create_ranking_prompt(self, investigator_statement, clue, index):
         """
@@ -255,15 +246,16 @@ Format the final part of the response as a JSON object with the following struct
         
         for clue in sorted_clues:
 
+            clue['index'] = int(clue['index'])
+
             if _idx > 3:
                 break
 
             if 'index' not in clue:
-
-                import pdb
-                pdb.set_trace()
+                continue
 
             if clue['index'] not in self.returned_clues:
+
                 self.returned_clues.add(clue['index'])
                 best_clue = self.clues[clue['index']]
 

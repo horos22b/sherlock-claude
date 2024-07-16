@@ -144,7 +144,7 @@ Based on this information, what are your initial thoughts? Consider if any of th
 
         else:
             debug_print("Investigator", f"final theory prompt: {prompt}")
-            response = self.get_retry_simple_response(prompt,filemode,logmode=SHERLOCK_LOGMODE)
+            response = self.get_retry_simple_response(prompt,filemode=SHERLOCK_FILEMODE,logmode=SHERLOCK_LOGMODE)
             debug_print("Investigator", f"final theory response: {response}")
 
         return(response)

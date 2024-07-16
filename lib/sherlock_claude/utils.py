@@ -214,9 +214,12 @@ def eval_confidence(response):
     return False
 
 
-def eval_json(json_string, key):
-
-    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, flags=re.DOTALL)
+def eval_json(json_string, keys):
+    if isinstance(keys, str):
+        keys = [keys]
+    
+    pattern = r'({[^}]+(?:' + '|'.join(f'"{re.escape(key)}"\\s*:' for key in keys) + ')[^}]+})'
+    json_string = re.search(pattern, json_string, flags=re.DOTALL)
 
     if not json_string:
         return False
@@ -225,15 +228,24 @@ def eval_json(json_string, key):
         _json = json_string.group(1)
         _json = fix_json(_json)
 
-        json.loads(_json)
+        parsed_json = json.loads(_json)
+
+        # Check if all keys are present in the parsed JSON
+        if not all(key in parsed_json for key in keys):
+            return False
 
         return True
     except json.JSONDecodeError:
         return False
 
-def ret_json(json_string, key):
+def ret_json(json_string, keys):
 
-    json_string = re.search(r'({[^}]+"%s"\s*:[^}]+})' % key, json_string, re.DOTALL).group(1)
+    if isinstance(keys, str):
+        keys = [keys]
+    
+    pattern = r'({[^}]+(?:' + '|'.join(f'"{re.escape(key)}"\\s*:' for key in keys) + ')[^}]+})'
+    json_string = re.search(pattern, json_string, flags=re.DOTALL).group(1)
+
     json_string = fix_json(json_string)
 
     return json.loads(json_string)

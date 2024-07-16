@@ -13,6 +13,8 @@ import json
 from sherlock_claude.config import API_KEY, API_URL, MODEL, MAX_TOKENS, ANTHROPIC_VERSION, SHERLOCK_DEBUG, SHERLOCK_LITE_DEBUG
 from sherlock_claude.utils import logger, debug_print, gettext, puttext, write_logmode, write_filemode
 from sherlock_claude.image_processor import ImageProcessor
+from requests.exceptions import ConnectionError, RequestException
+from urllib3.exceptions import ProtocolError
 
 class ClaudeBot:
 
@@ -117,6 +119,26 @@ class ClaudeBot:
             return False
 
         return self._post_response(windowed_messages)
+
+    def _post(self, _url, headers=False, json=False):
+
+        delay = 5
+        max_retries = 5
+        for attempt in range(max_retries):        
+
+            try:
+                response = requests.post(API_URL, headers=self.headers, json=json)
+                return response
+
+            except (ConnectionError, ProtocolError) as e:
+                if attempt < max_retries - 1:
+                    print(f"Connection error occurred: {e}")
+                    print(f"Retrying in {delay} seconds... (Attempt {attempt + 1} of {max_retries})")
+                    time.sleep(delay * (attempt+1))
+
+
+        raise "Error in posting."
+            
        
     def _post_response(self, windowed_messages,filemode=False,logmode=False):
 
@@ -133,9 +155,9 @@ class ClaudeBot:
         if filemode:
             return write_filemode(filemode, data)
 
-        for retry in range(3):
+        for retry in range(5):
 
-            response = requests.post(API_URL, headers=self.headers, json=data)
+            response = self._post(API_URL, headers=self.headers, json=data)
 
             if SHERLOCK_DEBUG:
                 logger.info(f"response: {response.json()}")
@@ -159,7 +181,7 @@ class ClaudeBot:
 
         raise Exception("The system is not available")
 
-    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=3, print_eval=False,filemode=False,logmode=False):
+    def get_retry_simple_response(self, text, eval_func=lambda x: True, process_func=lambda x: x, max_retries=5, print_eval=False,filemode=False,logmode=False):
 
         """
         Send a request to the Claude API with retry functionality and custom evaluation.
@@ -198,7 +220,8 @@ class ClaudeBot:
                     logger.warning(f"retrying {response}")
 
                     eval_func(response)
-                    time.sleep(5)  # Wait for 5 seconds before retrying
+                    wait_time = 5 * (2 * attempt)  # Exponential backoff
+                    time.sleep(wait_time)  # Wait before retrying
                     continue 
 
                 result = process_func(response)
@@ -213,7 +236,8 @@ class ClaudeBot:
                 pass
 
             if attempt < max_retries - 1:
-                time.sleep(5)  # Wait for 5 seconds before retrying
+                wait_time = 5 * (2 ** attempt)  # Exponential backoff
+                time.sleep(wait_time)  # Wait before retrying
                 logger.warning(f"retrying {response}")
 
 

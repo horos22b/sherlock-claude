@@ -21,36 +21,45 @@ def setup_exception_handler():
 
 def _numbered_dir(base_path='.'):
     """
-    Creates a new numbered directory.
+    Creates a new numbered directory with a prefix.
     
     :param base_path: The base path where the numbered directories will be created.
     :return: The path of the newly created directory.
     """
     # Ensure the base path exists
-    os.makedirs(base_path, exist_ok=True)
+    os.makedirs(os.path.dirname(base_path), exist_ok=True)
+
+    # Get the prefix from the base_path
+    prefix = os.path.basename(base_path)
+    parent_dir = os.path.dirname(base_path)
     
     # Get a list of existing numbered directories
-    existing_dirs = [d for d in os.listdir(base_path) if os.path.isdir(os.path.join(base_path, d)) and d.isdigit()]
+    existing_dirs = [d for d in os.listdir(parent_dir) if os.path.isdir(os.path.join(parent_dir, d)) and d.startswith(prefix) and d[len(prefix)+1:].isdigit()]
     
     # Find the highest number
     if existing_dirs:
-        highest_num = max(int(d) for d in existing_dirs)
+        highest_num = max(int(d[len(prefix)+1:]) for d in existing_dirs)
     else:
         highest_num = 0
     
     # Create the new directory number
     new_dir_num = highest_num + 1
-    new_dir_name = f'{new_dir_num:04d}'  # Format as 4-digit number
+    new_dir_name = f'{prefix}_{new_dir_num:04d}'  # Format as prefix_XXXX
     
     # Create the new directory
-    new_dir_path = os.path.join(base_path, new_dir_name)
+    new_dir_path = os.path.join(parent_dir, new_dir_name)
     os.makedirs(new_dir_path)
     
     return new_dir_path
 
+SHERLOCK_FILEMODE = False
+SHERLOCK_LOGMODE  = False
+
 def _set_filemode():
 
-    SHERLOCK_LOGMODE=os.getenv("SHERLOCK_FILEMODE")
+    global SHERLOCK_FILEMODE
+
+    SHERLOCK_FILEMODE=os.getenv("SHERLOCK_FILEMODE")
 
     if not SHERLOCK_FILEMODE:
         return
@@ -59,6 +68,8 @@ def _set_filemode():
     return SHERLOCK_FILEMODE
 
 def _set_logmode():
+
+    global SHERLOCK_LOGMODE
 
     SHERLOCK_LOGMODE=os.getenv("SHERLOCK_LOGMODE")
 

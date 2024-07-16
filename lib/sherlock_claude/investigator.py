@@ -51,6 +51,9 @@ class Investigator(ClaudeBot):
             "clue_path" : [],
             "newspaper_clues": []
         }
+
+        self.newspaper_review_count = 0
+        self.max_newspaper_reviews  = 10
         
         initial_message = self._create_initial_message()
         self.get_response(initial_message, dryrun=True)
@@ -242,8 +245,6 @@ Also, IMPORTANT, please keep your reply to one option as to where to go to next.
 }}
 """
 
-
-
     def process_clue(self, investigator_response, referee_response):
 
         """
@@ -272,7 +273,7 @@ description:    {referee_response['description']}")
         debug_print("Investigator", f"next clue: {self.case_information['clues'][-1]}")
 
 
-    def process_newspapers(self, newspapers):
+    def process_newspapers_2(self, newspapers):
 
         """
         Process the bulk newspaper data.
@@ -358,6 +359,78 @@ NEWSPAPER DATA BELOW
         self.case_information['newspaper_clues'].append(response)
 
         self.latest_clue = response
+
+    def process_newspapers(self, newspapers):
+        self.newspaper_review_count += 1
+        if self.newspaper_review_count > self.max_newspaper_reviews:
+            return {"description": "You have reached the maximum number of newspaper reviews."}
+
+        self.case_information['newspapers'] = newspapers
+        newspapers_json = json.dumps(newspapers, indent=2)
+
+        prompt = f"""
+Given all of the information you know about the case and your current theories and observations, carefully review the following newspaper text.
+This is a data dump of information, some relevant to the case at hand, most irrelevant.
+
+Analyze the content and identify the single most important and relevant clue you haven't cataloged before. Provide:
+
+1. A brief description of the clue
+2. Its relevance to the case
+3. Your rationale for considering it important
+
+Remember to compare this potential new clue with the ones you've already cataloged to avoid duplication.
+
+Format your response as a JSON object with the following structure:
+{{
+    "description": "<clue description>",
+    "relevance": "<clue relevance>",
+    "rationale": "<your rationale>"
+}}
+
+Here are your existing newspaper clues for reference:
+{json.dumps(self.case_information['newspaper_clues'], indent=2)}
+
+NEWSPAPER DATA:
+{newspapers_json}
+"""
+
+        response = self.get_retry_simple_response(
+            self._create_analysis_prompt() + prompt,
+            lambda x: eval_json(x, ['description', 'relevance', 'rationale']),
+            lambda x: ret_json(x, ['description', 'relevance', 'rationale']),
+            logmode=SHERLOCK_LOGMODE
+        )
+
+        debug_print("Investigator", f"Found the following clue in the newspaper: {json.dumps(response, indent=2)}")
+
+        # Check if the new clue is sufficiently different from existing clues
+        if self._is_new_clue(response):
+            self.case_information['newspaper_clues'].append(response)
+            put_latest_file(SHERLOCK_LOGMODE or SHERLOCK_FILEMODE, "newspaper", response, prettify=True )
+            debug_print("Investigator", "Added new clue to newspaper clues.")
+        else:
+            debug_print("Investigator", "Clue was too similar to existing clues. Not added.")
+
+        return response
+
+    def _is_new_clue(self, new_clue):
+        for existing_clue in self.case_information['newspaper_clues']:
+            if self._clue_similarity(new_clue, existing_clue) > 0.7:  # Adjust this threshold as needed
+                return False
+        return True
+
+    def _clue_similarity(self, clue1, clue2):
+        # This is a simple similarity check. You might want to use a more sophisticated method.
+        text1 = f"{clue1['description']} {clue1['relevance']}"
+        text2 = f"{clue2['description']} {clue2['relevance']}"
+    
+        words1 = set(text1.lower().split())
+        words2 = set(text2.lower().split())
+    
+        intersection = words1.intersection(words2)
+        union = words1.union(words2)
+    
+        return len(intersection) / len(union)
 
     def get_latest_clue(self):
 

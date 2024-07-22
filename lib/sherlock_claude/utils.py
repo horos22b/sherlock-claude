@@ -13,6 +13,7 @@ import base64
 import os
 import inspect
 import glob
+import copy
 from PIL import Image
 
 from sherlock_claude.config import SHERLOCK_LITE_DEBUG
@@ -141,13 +142,33 @@ def put_latest_file(directory, prefix, content, prettify=False):
     
     # Write the content to the new file
     with open(full_path, 'w') as file:
+
         if prettify:
             if isinstance(content, str):
                 file.write(f"{content}")
-            else:
+
+            elif isinstance(content, dict):
+
                 file.write(prettify_json(json.dumps(content, indent=2, ensure_ascii=True)))
+
+            else:
+
+                content_copy = copy.copy(content)
+
+                import pprint
+                pprint.pprint(content_copy)
+
+                content_copy = [ _ for _ in content_copy if _['type'] != 'image' ]
+                file.write(prettify_json(json.dumps(content_copy, indent=2, ensure_ascii=True)))
+
         else:
-            file.write(f"{content}")
+            if isinstance(content, str):
+                file.write(f"{content}")
+
+            else:
+                content_copy = copy.copy(content)
+                content_copy = [ _ for _ in content_copy if _['type'] != 'image' ]
+                file.write(f"{content_copy}")
 
     return full_path
 

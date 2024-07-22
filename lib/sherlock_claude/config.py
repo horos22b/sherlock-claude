@@ -107,7 +107,8 @@ ANTHROPIC_VERSION = "2023-06-01"
 """str: The version of the Anthropic API to use in requests."""
 
 # Model settings
-MODEL = "claude-3-haiku-20240307"
+# MODEL = "claude-3-haiku-20240307"
+MODEL = "claude-3-5-sonnet-20240620"
 """str: The specific model version used for generating responses."""
 
 MAX_TOKENS = 2048

@@ -481,3 +481,40 @@ Format your response as a JSON object with the following structure:
             str: Formatted string containing image metadata.
         """
         return super().get_image_info(index)
+
+    def compare_clues(self, clue1, clue2):
+        prompt = f"""
+As a referee, your task is to compare two clues and determine their similarity on a scale from 0 to 1, where 0 means completely different and 1 means identical.
+
+Clue 1:
+Description: {clue1['description']}
+Relevance: {clue1['relevance']}
+
+Clue 2:
+Description: {clue2['description']}
+Relevance: {clue2['relevance']}
+
+Consider the following factors:
+1. Similarity in content and meaning
+2. Overlap in relevant information
+3. Potential to lead to the same conclusions
+
+Provide your similarity score and a brief explanation for your decision.
+
+Format your response as a JSON object with the following structure:
+{{
+    "similarity_score": <score between 0 and 1>,
+    "explanation": "<brief explanation>"
+}}
+"""
+
+        response = self.get_retry_simple_response(
+            prompt,
+            lambda x: eval_json(x, ['similarity_score', 'explanation']),
+            lambda x: ret_json(x, ['similarity_score', 'explanation']),
+            max_retries=3
+        )
+
+        debug_print("Referee", f"Clue similarity comparison: {json.dumps(response, indent=2)}")
+
+        return float(response['similarity_score'])

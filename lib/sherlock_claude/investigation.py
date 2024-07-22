@@ -36,7 +36,7 @@ class Investigation:
             case_directory (str): The directory containing the case files.
         """
         self.referee = Referee(case_directory)
-        self.investigator = Investigator(case_directory)
+        self.investigator = Investigator(case_directory, self.referee)
         self.max_iterations = 50
         self._investigation_complete = False
 

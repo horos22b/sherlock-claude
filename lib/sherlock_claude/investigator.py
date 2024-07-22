@@ -28,7 +28,7 @@ class Investigator(ClaudeBot):
         informants (dict): Information about special investigation spots.
     """
 
-    def __init__(self, case_directory):
+    def __init__(self, case_directory, referee):
         system_message = "You are an investigator trying to solve a case. You will receive information about the case, including textual clues and references to visual evidence. You should formulate theories, ask questions, and try to solve the case. You can also request to review newspapers in bulk at any time."
 
         """
@@ -53,7 +53,8 @@ class Investigator(ClaudeBot):
         }
 
         self.newspaper_review_count = 0
-        self.max_newspaper_reviews  = 10
+        self.max_newspaper_reviews  = 50
+        self.referee = referee
         
         initial_message = self._create_initial_message()
         self.get_response(initial_message, dryrun=True)
@@ -208,7 +209,7 @@ Consider the clues you've received, the informants you know about, and the optio
 
 Also remember that you are playing a GAME. The solution of the puzzle in the game is bounded by the information present in the clues OF the game. Therefore it is likely that the solution will be something that makes sense to integrate disparate parts of clues that you find. Making suppositions which aren't supported by what you have found is likely to be incorrect, the suspects in the case for example are bounded to person or persons that are in the story itself.
 
-Likewise the solution is likely to feel complete, to drive a narrative based off of the clues that you see. When there are multiple possible options, the likely solution is due to some specific forensic detail that only matches a certain theory. Comparing and contrasting different theories should start by trying to reconcile those theories with corroborating evidence, namely evidence showing means, motive and opportunity, or physical evidence pointing to a specific theory.
+Likewise the solution is likely to feel complete, to drive a narrative based off of the clues that you see. When there are multiple possible options, the likely solution is due to some specific forensic detail that only matches a certain theory. Comparing and contrasting different theories should start by trying to reconcile those theories with corroborating evidence, namely evidence showing means, motive and opportunity, or physical evidence pointing to a specific theory. Likewise, please try to connect the crime or crimes to the people who you posit committed it by reflecting on how that crime might relate to their background or skillset.
 
 Also, remember to keep the initial setup and questions in mind as you formulate your thoughts and next steps.
 """
@@ -420,17 +421,8 @@ NEWSPAPER DATA:
         return True
 
     def _clue_similarity(self, clue1, clue2):
-        # This is a simple similarity check. You might want to use a more sophisticated method.
-        text1 = f"{clue1['description']} {clue1['relevance']}"
-        text2 = f"{clue2['description']} {clue2['relevance']}"
-    
-        words1 = set(text1.lower().split())
-        words2 = set(text2.lower().split())
-    
-        intersection = words1.intersection(words2)
-        union = words1.union(words2)
-    
-        return len(intersection) / len(union)
+        similarity = self.referee.compare_clues(clue1, clue2)
+        return similarity
 
     def get_latest_clue(self):
 

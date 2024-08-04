@@ -111,7 +111,7 @@ Based on this information, what are your initial thoughts? Consider if any of th
             next_clue = self.get_latest_clue()
             debug_print("Investigator", f"next clue: {next_clue}")
 
-            prompt = "\n-----\nnext clue\n----\n{next_clue}\n"
+            prompt = f"\n-----\nnext clue\n----\n{next_clue}\n"
             prompt += self._create_pick_prompt()
 
             response = self.get_retry_simple_response(prompt,filemode=SHERLOCK_FILEMODE)
